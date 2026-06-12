@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Rules — CodeSentinel{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-xl font-semibold text-white">Review Rules</h1>
+    <p class="text-sm text-gray-400 mt-1">Custom rules injected into every code review prompt</p>
+  </div>
+  <button onclick="document.getElementById('add-rule-modal').classList.remove('hidden')"
+    class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+    + Add rule
+  </button>
+</div>
+
+{% if rules %}
+<div class="space-y-3">
+  {% for rule in rules %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-start gap-4 {% if not rule.enabled %}opacity-50{% endif %}">
+    <div class="flex-1">
+      <div class="flex items-center gap-2">
+        <span class="text-white font-medium text-sm">{{ rule.name }}</span>
+        {% if rule.language and rule.language != 'all' %}
+        <span class="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded">{{ rule.language }}</span>
+        {% endif %}
+        <span class="text-xs px-1.5 py-0.5 rounded {% if rule.enabled %}bg-green-400/10 text-green-400{% else %}bg-gray-700 text-gray-500{% endif %}">
+          {% if rule.enabled %}enabled{% else %}disabled{% endif %}
+        </span>
+      </div>
+      {% if rule.description %}
+      <p class="text-sm text-gray-400 mt-1">{{ rule.description }}</p>
+      {% endif %}
+      {% if rule.prompt_snippet %}
+      <code class="text-xs text-gray-500 mt-1 block font-mono">{{ rule.prompt_snippet[:120] }}{% if rule.prompt_snippet|length > 120 %}...{% endif %}</code>
+      {% endif %}
+    </div>
+    <div class="flex gap-2 flex-shrink-0">
+      <form method="post" action="/rules/{{ rule.id }}/toggle">
+        <button class="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+          {% if rule.enabled %}Disable{% else %}Enable{% endif %}
+        </button>
+      </form>
+      <form method="post" action="/rules/{{ rule.id }}/delete">
+        <button class="text-xs text-gray-600 hover:text-red-400 transition-colors"
+          onclick="return confirm('Delete this rule?')">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+  <p class="text-sm text-gray-500">No custom rules. Add one to customize your reviews.</p>
+  <p class="text-xs text-gray-600 mt-2">Example: "Flag any hardcoded credentials" or "Require type hints on all Python functions"</p>
+</div>
+{% endif %}
+
+<!-- Add rule modal -->
+<div id="add-rule-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-white">Add rule</h2>
+      <button onclick="document.getElementById('add-rule-modal').classList.add('hidden')" class="text-gray-500 hover:text-gray-300">✕</button>
+    </div>
+
+    <form method="post" action="/rules" class="space-y-4">
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Rule name</label>
+        <input type="text" name="name" required placeholder="No hardcoded secrets"
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Description</label>
+        <input type="text" name="description" placeholder="Flag any hardcoded API keys, passwords, or tokens"
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Prompt snippet <span class="text-gray-600">(injected into review prompt)</span></label>
+        <textarea name="prompt_snippet" rows="3" placeholder="- Flag any hardcoded API keys, passwords, or connection strings as HIGH severity"
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Language filter</label>
+        <select name="language" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="all">All languages</option>
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript / TypeScript</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+          <option value="java">Java</option>
+        </select>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+          Add rule
+        </button>
+        <button type="button" onclick="document.getElementById('add-rule-modal').classList.add('hidden')"
+          class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

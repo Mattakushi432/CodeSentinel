@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Repositories — CodeSentinel{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-xl font-semibold text-white">Repositories</h1>
+    <p class="text-sm text-gray-400 mt-1">{{ repos | length }} of {{ org.repo_limit }} repos on {{ org.plan }} plan</p>
+  </div>
+  <button
+    onclick="document.getElementById('add-repo-modal').classList.remove('hidden')"
+    class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+  >
+    + Add repository
+  </button>
+</div>
+
+{% if error %}
+<div class="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">{{ error }}</div>
+{% endif %}
+
+{% if repos %}
+<div class="space-y-3">
+  {% for repo in repos %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="text-white font-medium text-sm">{{ repo.repo_full_name }}</span>
+        <span class="text-xs px-1.5 py-0.5 bg-gray-800 rounded text-gray-400">{{ repo.git_host }}</span>
+        {% if not repo.active %}<span class="text-xs px-1.5 py-0.5 bg-red-500/10 rounded text-red-400">inactive</span>{% endif %}
+      </div>
+      {% if repo.base_url %}
+      <div class="text-xs text-gray-500 mt-0.5">{{ repo.base_url }}</div>
+      {% endif %}
+    </div>
+
+    <div class="text-xs text-gray-500 font-mono">
+      Webhook URL:
+      <span class="text-gray-300 select-all">{{ base_url }}/webhooks/{{ repo.id }}</span>
+    </div>
+
+    <form method="post" action="/repos/{{ repo.id }}/delete">
+      <button type="submit" class="text-gray-600 hover:text-red-400 text-xs transition-colors"
+        onclick="return confirm('Remove this repository?')">
+        Remove
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+  <p class="text-sm text-gray-500">No repositories yet. Add one to start receiving reviews.</p>
+</div>
+{% endif %}
+
+<!-- Webhook instructions -->
+{% if repos %}
+<div class="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-4">
+  <h3 class="text-sm font-medium text-white mb-2">Setting up webhooks</h3>
+  <div class="text-xs text-gray-400 space-y-1">
+    <p><strong class="text-gray-300">GitHub:</strong> Repo Settings → Webhooks → Add webhook → Payload URL: <code class="text-blue-400">{{ base_url }}/webhooks/YOUR_REPO_ID</code> · Content type: application/json · Secret: your webhook_secret (shown above) · Events: Pull requests</p>
+    <p><strong class="text-gray-300">GitLab:</strong> Settings → Webhooks → URL: same as above · Secret token: your webhook_secret · Trigger: Merge request events</p>
+    <p><strong class="text-gray-300">Gitea:</strong> Settings → Webhooks → Gitea · URL: same · Secret: your webhook_secret · Events: Pull Request</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Add repo modal -->
+<div id="add-repo-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-white">Add repository</h2>
+      <button onclick="document.getElementById('add-repo-modal').classList.add('hidden')" class="text-gray-500 hover:text-gray-300">✕</button>
+    </div>
+
+    <form method="post" action="/repos" class="space-y-4">
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Git host</label>
+        <select name="git_host" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="github">GitHub</option>
+          <option value="gitlab">GitLab</option>
+          <option value="gitea">Gitea</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Repository (owner/repo)</label>
+        <input type="text" name="repo_full_name" required placeholder="myorg/myrepo"
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Base URL <span class="text-gray-600">(self-hosted only)</span></label>
+        <input type="url" name="base_url" placeholder="https://gitlab.company.com"
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Access token</label>
+        <input type="password" name="access_token" placeholder="ghp_... or glpat-..."
+          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <p class="text-xs text-gray-500 mt-1">Needed to post review comments. Stored encrypted at rest.</p>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
+          Add repository
+        </button>
+        <button type="button" onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
+          class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
