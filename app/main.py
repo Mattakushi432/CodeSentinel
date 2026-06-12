@@ -2,9 +2,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from prometheus_client import make_asgi_app, Counter, Histogram, Gauge
 from app.config import get_settings
@@ -27,7 +25,6 @@ queue_depth = Gauge("codesentinel_queue_depth", "Pending review jobs in queue")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
     init_db()
     logger.info("Database initialized")
 

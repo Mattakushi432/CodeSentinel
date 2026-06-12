@@ -1,4 +1,3 @@
-import pytest
 from app.services.auth_service import generate_magic_token, verify_magic_token
 
 
