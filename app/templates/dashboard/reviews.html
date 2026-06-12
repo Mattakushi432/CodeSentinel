@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Reviews — CodeSentinel{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-xl font-semibold text-white">Reviews</h1>
+    <p class="text-sm text-gray-400 mt-1">{{ total }} total review jobs</p>
+  </div>
+
+  {% if repos %}
+  <select onchange="window.location='/reviews?repo_id=' + (this.value || '')"
+    class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:outline-none">
+    <option value="">All repos</option>
+    {% for repo in repos %}
+    <option value="{{ repo.id }}" {% if repo.id == selected_repo_id %}selected{% endif %}>{{ repo.repo_full_name }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+</div>
+
+{% if jobs %}
+<div class="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+  {% for job in jobs %}
+  <div id="job-{{ job.id }}" class="px-4 py-3 flex items-center gap-4"
+    {% if job.status in ('pending', 'processing') %}
+    hx-get="/reviews/job/{{ job.id }}/status"
+    hx-trigger="every 10s"
+    hx-target="#job-{{ job.id }}"
+    hx-swap="outerHTML"
+    {% endif %}>
+    {% include "partials/job_row.html" %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="mt-4 flex gap-2 justify-center">
+  {% for p in range(1, total_pages + 1) %}
+  <a href="/reviews?page={{ p }}{% if selected_repo_id %}&repo_id={{ selected_repo_id }}{% endif %}"
+    class="px-3 py-1 rounded text-sm {% if p == page %}bg-blue-600 text-white{% else %}bg-gray-800 text-gray-400 hover:bg-gray-700{% endif %}">
+    {{ p }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+  <p class="text-sm text-gray-500">No review jobs yet.</p>
+  <p class="text-xs text-gray-600 mt-1">Create a PR in a connected repository to trigger your first review.</p>
+</div>
+{% endif %}
+{% endblock %}
