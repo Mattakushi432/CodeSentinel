@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Request, Form, Depends
+import re
+
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
+from app.config import get_settings
 from app.database import get_db
-from app.models.user import User
 from app.models.organization import Organization
+from app.models.user import User
 from app.services.auth_service import generate_magic_token, verify_magic_token
 from app.services.email_service import send_magic_link
-from app.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -20,7 +25,12 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def login_submit(request: Request, email: str = Form(...), db: Session = Depends(get_db)):
-    email = email.strip().lower()
+    email = email.strip().lower()[:254]
+    if not _EMAIL_RE.match(email):
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": "Please enter a valid email address."},
+        )
     settings = get_settings()
     token = generate_magic_token(email)
     magic_url = f"{settings.base_url}/auth/verify?token={token}"

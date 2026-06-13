@@ -1,0 +1,127 @@
+groups:
+  - name: codesentinel
+    rules:
+      # -----------------------------------------------------------------------
+      # Queue health
+      # -----------------------------------------------------------------------
+      - alert: HighQueueDepth
+        expr: codesentinel_queue_depth > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: codesentinel
+        annotations:
+          summary: "Review queue backed up ({{ $value }} jobs)"
+          description: >
+            The CodeSentinel review queue has had more than 10 pending jobs for
+            5 minutes. This usually means the Ollama worker is overloaded or
+            stuck. Check `docker compose logs app` and `docker compose logs ollama`.
+
+      - alert: QueueDepthCritical
+        expr: codesentinel_queue_depth > 50
+        for: 2m
+        labels:
+          severity: critical
+          service: codesentinel
+        annotations:
+          summary: "Review queue critically deep ({{ $value }} jobs)"
+          description: >
+            More than 50 review jobs are pending. New webhooks are likely
+            being accepted faster than they can be processed. Consider enabling
+            Groq fallback (LLM_PROVIDER=groq) or increasing worker capacity.
+
+      # -----------------------------------------------------------------------
+      # LLM inference latency
+      # -----------------------------------------------------------------------
+      - alert: LLMSlowInference
+        expr: >
+          histogram_quantile(
+            0.95,
+            rate(codesentinel_llm_inference_seconds_bucket[5m])
+          ) > 120
+        for: 10m
+        labels:
+          severity: warning
+          service: codesentinel
+        annotations:
+          summary: "LLM p95 inference > 2 min"
+          description: >
+            The 95th-percentile LLM inference time has exceeded 120 seconds for
+            10 minutes. This is expected on first load while the model warms up,
+            but sustained slowness may indicate the model is thrashing memory.
+            Check available RAM on the host: `docker stats codesentinel_ollama`.
+
+      - alert: LLMInferenceCritical
+        expr: >
+          histogram_quantile(
+            0.95,
+            rate(codesentinel_llm_inference_seconds_bucket[5m])
+          ) > 240
+        for: 5m
+        labels:
+          severity: critical
+          service: codesentinel
+        annotations:
+          summary: "LLM p95 inference > 4 min — reviews likely failing"
+          description: >
+            P95 LLM inference latency has exceeded the LLM_TIMEOUT default of
+            300 seconds. Jobs are likely timing out and being marked as failed.
+            Check `codesentinel_review_jobs_total{status="error"}` and Ollama logs.
+
+      # -----------------------------------------------------------------------
+      # Job error rate
+      # -----------------------------------------------------------------------
+      - alert: HighJobErrorRate
+        expr: >
+          rate(codesentinel_review_jobs_total{status="error"}[5m])
+          /
+          rate(codesentinel_review_jobs_total[5m])
+          > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          service: codesentinel
+        annotations:
+          summary: "More than 20% of review jobs failing"
+          description: >
+            Over 20% of review jobs in the last 5 minutes have a status of
+            "error". Common causes: invalid git host API token, Ollama OOM,
+            diff larger than MAX_DIFF_LINES after truncation, or network
+            connectivity issues reaching the git host. Check app logs:
+            `docker compose logs --tail=100 app`.
+
+      - alert: ElevatedJobErrorRate
+        expr: >
+          rate(codesentinel_review_jobs_total{status="error"}[15m])
+          /
+          rate(codesentinel_review_jobs_total[15m])
+          > 0.05
+        for: 15m
+        labels:
+          severity: warning
+          service: codesentinel
+        annotations:
+          summary: "Elevated job error rate (>5% over 15m)"
+          description: >
+            More than 5% of review jobs are failing over a 15-minute window.
+            Not yet critical but worth investigating before it worsens.
+
+      # -----------------------------------------------------------------------
+      # Job throughput (absence of activity)
+      # -----------------------------------------------------------------------
+      - alert: NoJobsProcessed
+        expr: >
+          increase(codesentinel_review_jobs_total{status="success"}[1h]) == 0
+          and
+          codesentinel_queue_depth > 0
+        for: 30m
+        labels:
+          severity: warning
+          service: codesentinel
+        annotations:
+          summary: "No review jobs completed in 1 h despite non-empty queue"
+          description: >
+            The queue has pending jobs but no successful completions have been
+            recorded in the last hour. The background worker may be stuck or
+            Ollama may be unresponsive. Restart the app container:
+            `docker compose restart app`.

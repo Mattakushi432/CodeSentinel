@@ -1,23 +1,26 @@
+import os
+
+# Must be set before any app module is imported so get_settings() picks it up
+os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests")
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.database import Base, get_db
+
+from app.database import Base, engine, get_db
 from app.main import app
 
-TEST_DB_URL = "sqlite:///./test.db"
 
-
-@pytest.fixture(scope="session")
-def engine():
-    e = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=e)
-    yield e
-    Base.metadata.drop_all(bind=e)
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def db(engine):
+def db(setup_database):
     Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = Session()
     try:

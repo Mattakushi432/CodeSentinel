@@ -1,16 +1,18 @@
 import json
-import re
 import logging
+import re
 from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
-from app.models.review_job import ReviewJob, JobStatus
-from app.models.review import Review
+
+from app.config import get_settings
 from app.models.repository import Repository
+from app.models.review import Review
+from app.models.review_job import JobStatus, ReviewJob
 from app.models.rule import Rule
 from app.services.git_hosts import get_git_host_client
 from app.services.llm import get_llm_client
 from app.services.prompt_builder import build_system_prompt, build_user_prompt, chunk_diff
-from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,15 @@ async def run_review(job_id: int, db: Session) -> None:
 
     try:
         repo: Repository = job.repository
-        git_client = get_git_host_client(repo.git_host, repo.base_url, repo.access_token)
+        org = repo.organization
+        if org.monthly_limit_reached():
+            job.status = JobStatus.skipped
+            job.error_msg = f"Monthly review limit reached ({org.monthly_review_limit}/month on {org.plan} plan)"
+            job.finished_at = datetime.now(timezone.utc)
+            db.commit()
+            return
+
+        git_client = get_git_host_client(repo.git_host, repo.base_url, repo.get_access_token())
         llm_client = get_llm_client()
 
         pr_info = await git_client.get_pr_info(repo.repo_full_name, job.pr_number)
@@ -124,7 +134,7 @@ async def run_review(job_id: int, db: Session) -> None:
             .filter(Rule.org_id == repo.org_id, Rule.enabled == True)  # noqa: E712
             .all()
         )
-        system_prompt = build_system_prompt(rules)
+        system_prompt = build_system_prompt(rules, diff)
 
         all_issues: list[dict] = []
         raw_outputs: list[str] = []
@@ -163,6 +173,7 @@ async def run_review(job_id: int, db: Session) -> None:
         )
         db.add(review)
 
+        org.increment_monthly_reviews()
         job.status = JobStatus.done
         job.finished_at = datetime.now(timezone.utc)
         db.commit()

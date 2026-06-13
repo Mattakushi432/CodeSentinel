@@ -1,14 +1,16 @@
-import stripe
 import logging
-from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+
+import stripe
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models.user import User
-from app.models.organization import Organization
-from app.routers.auth import require_user
+
 from app.config import get_settings
+from app.database import get_db
+from app.models.organization import Organization
+from app.models.user import User
+from app.routers.auth import require_user
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 templates = Jinja2Templates(directory="app/templates")
@@ -100,3 +102,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             logger.info("Org %d downgraded to free (subscription cancelled)", org.id)
 
     return JSONResponse({"status": "ok"})
+
+
+@router.post("/portal")
+async def customer_portal(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Redirect to Stripe Customer Portal for subscription management."""
+    settings = get_settings()
+    if not settings.stripe_secret_key:
+        raise HTTPException(status_code=503, detail="Billing not configured")
+
+    stripe.api_key = settings.stripe_secret_key
+    if not user.stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No active subscription")
+
+    portal = stripe.billing_portal.Session.create(
+        customer=user.stripe_customer_id,
+        return_url=f"{settings.base_url}/billing",
+    )
+    return RedirectResponse(url=portal.url, status_code=303)

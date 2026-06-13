@@ -1,7 +1,7 @@
-from app.services.git_hosts.base import GitHostClient, PRInfo, DiffResult
+from app.services.git_hosts.base import DiffResult, GitHostClient, PRInfo
+from app.services.git_hosts.gitea import GiteaProvider
 from app.services.git_hosts.github import GitHubProvider
 from app.services.git_hosts.gitlab import GitLabProvider
-from app.services.git_hosts.gitea import GiteaProvider
 
 __all__ = [
     "GitHostClient",

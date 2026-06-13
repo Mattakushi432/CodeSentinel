@@ -98,7 +98,24 @@
   </div>
 </div>
 
-<p class="text-xs text-gray-600 mt-6 text-center">
+{% if org and org.plan != 'free' and org.stripe_subscription_id %}
+<div class="mt-6 text-center">
+  <form method="post" action="/billing/portal">
+    <button class="text-sm text-gray-400 hover:text-white underline transition-colors">
+      Manage subscription in Stripe Portal
+    </button>
+  </form>
+</div>
+{% endif %}
+
+<div class="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4">
+  <div class="text-xs text-gray-400">
+    Monthly reviews used: <span class="text-white">{{ org.reviews_this_month if org else 0 }}</span>
+    / <span class="text-white">{{ org.monthly_review_limit if org else 30 }}</span>
+  </div>
+</div>
+
+<p class="text-xs text-gray-600 mt-4 text-center">
   Payments processed by Stripe · Cancel anytime · No refunds for partial months
 </p>
 {% endblock %}

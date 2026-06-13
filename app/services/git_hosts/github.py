@@ -1,5 +1,6 @@
 import httpx
-from app.services.git_hosts.base import GitHostClient, PRInfo, DiffResult
+
+from app.services.git_hosts.base import DiffResult, GitHostClient, PRInfo
 
 _API = "https://api.github.com"
 

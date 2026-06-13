@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -31,6 +32,15 @@ class Settings(BaseSettings):
     llm_timeout: int = 300
 
     magic_link_expiry: int = 900  # 15 minutes in seconds
+
+    # Fernet key for encrypting access tokens at rest (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    encryption_key: str = ""
+
+    # Opt-in anonymous telemetry ping (set to "true" to enable)
+    telemetry_enabled: bool = False
+
+    llm_retry_attempts: int = 3
+    llm_retry_backoff: float = 2.0
 
 
 @lru_cache

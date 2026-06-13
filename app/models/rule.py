@@ -1,8 +1,15 @@
 from __future__ import annotations
-from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Boolean
+
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Rule(Base):
@@ -15,7 +22,7 @@ class Rule(Base):
     prompt_snippet: Mapped[str | None] = mapped_column(Text)
     language: Mapped[str | None] = mapped_column(String(50))  # python, javascript, all
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     organization: Mapped[Organization] = relationship(back_populates="rules")
 
