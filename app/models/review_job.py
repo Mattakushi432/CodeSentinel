@@ -1,9 +1,16 @@
 from __future__ import annotations
-from datetime import datetime
+
+from datetime import datetime, timezone
 from enum import Enum
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class JobStatus(str, Enum):
@@ -27,9 +34,9 @@ class ReviewJob(Base):
     status: Mapped[str] = mapped_column(String(20), default=JobStatus.pending, index=True)
     error_msg: Mapped[str | None] = mapped_column(Text)
     model_used: Mapped[str | None] = mapped_column(String(100))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     repository: Mapped[Repository] = relationship(back_populates="review_jobs")
     review: Mapped[Review | None] = relationship(back_populates="job", uselist=False)

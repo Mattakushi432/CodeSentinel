@@ -1,6 +1,7 @@
 import httpx
-from app.services.llm.base import LLMClient, LLMResponse
+
 from app.config import get_settings
+from app.services.llm.base import LLMClient, LLMResponse
 
 
 class GroqProvider(LLMClient):

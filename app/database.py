@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
 from app.config import get_settings
 
 
@@ -28,5 +29,5 @@ def get_db():
 
 
 def init_db():
-    from app.models import user, organization, repository, review_job, review, rule, api_key  # noqa: F401
+    from app.models import api_key, organization, repository, review, review_job, rule, user  # noqa: F401
     Base.metadata.create_all(bind=engine)

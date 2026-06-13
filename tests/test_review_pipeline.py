@@ -1,6 +1,6 @@
-from app.services.review_pipeline import _parse_issues, _format_review_comment
-from app.services.prompt_builder import build_system_prompt, build_user_prompt, chunk_diff
 from app.services.git_hosts.base import DiffResult
+from app.services.prompt_builder import build_system_prompt, build_user_prompt, chunk_diff
+from app.services.review_pipeline import _format_review_comment, _parse_issues
 
 
 class TestParseIssues:

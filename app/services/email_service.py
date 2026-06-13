@@ -1,7 +1,9 @@
 import logging
-import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+import aiosmtplib
+
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)

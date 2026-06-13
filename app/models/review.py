@@ -1,8 +1,15 @@
 from __future__ import annotations
-from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, JSON
+
+from datetime import datetime, timezone
+
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Review(Base):
@@ -16,7 +23,7 @@ class Review(Base):
     severity_low: Mapped[int] = mapped_column(Integer, default=0)
     posted_comment_id: Mapped[str | None] = mapped_column(String(255))
     raw_llm_output: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     job: Mapped[ReviewJob] = relationship(back_populates="review")
 

@@ -1,4 +1,5 @@
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
 from app.config import get_settings
 
 

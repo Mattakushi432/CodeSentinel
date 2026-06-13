@@ -2,15 +2,37 @@ import hashlib
 import hmac
 import json
 import logging
-from fastapi import APIRouter, Request, HTTPException, Depends
+import time
+from collections import defaultdict
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.models.repository import Repository
-from app.models.review_job import ReviewJob, JobStatus
+from app.models.review_job import JobStatus, ReviewJob
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 logger = logging.getLogger(__name__)
+
+# In-memory rate limiter: max 10 webhook requests per repo per 60 seconds
+_RATE_LIMIT_MAX = 10
+_RATE_LIMIT_WINDOW = 60
+_rate_buckets: dict[int, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(repo_id: int) -> bool:
+    """Return True if allowed, False if rate limit exceeded."""
+    now = time.monotonic()
+    window_start = now - _RATE_LIMIT_WINDOW
+    calls = _rate_buckets[repo_id]
+    # Evict old entries
+    _rate_buckets[repo_id] = [t for t in calls if t > window_start]
+    if len(_rate_buckets[repo_id]) >= _RATE_LIMIT_MAX:
+        return False
+    _rate_buckets[repo_id].append(now)
+    return True
 
 
 def _verify_github_signature(payload: bytes, secret: str, signature_header: str | None) -> bool:
@@ -35,6 +57,10 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
     repo = db.query(Repository).filter(Repository.id == repo_id, Repository.active == True).first()  # noqa: E712
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
+
+    if not _check_rate_limit(repo_id):
+        logger.warning("Rate limit exceeded for repo %d", repo_id)
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
     payload_bytes = await request.body()
     secret = repo.webhook_secret
