@@ -1,15 +1,18 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models.user import User
 from app.models.organization import Organization
 from app.models.rule import Rule
+from app.models.user import User
 from app.routers.auth import require_user
 
 router = APIRouter(prefix="/rules", tags=["rules"])
 templates = Jinja2Templates(directory="app/templates")
+
+_ALLOWED_LANGUAGES = {"all", "python", "javascript", "go", "rust", "java", "typescript", "ruby", "php", "csharp"}
 
 
 def _get_org(user: User, db: Session) -> Organization:
@@ -37,12 +40,19 @@ async def add_rule(
     language: str = Form("all"),
 ):
     org = _get_org(user, db)
+    name = name.strip()[:100]
+    if not name:
+        raise HTTPException(status_code=400, detail="Rule name is required")
+    description = description.strip()[:500]
+    prompt_snippet = prompt_snippet.strip()[:2000]
+    language = language if language in _ALLOWED_LANGUAGES else "all"
+
     rule = Rule(
         org_id=org.id,
-        name=name.strip(),
-        description=description.strip() or None,
-        prompt_snippet=prompt_snippet.strip() or None,
-        language=language or "all",
+        name=name,
+        description=description or None,
+        prompt_snippet=prompt_snippet or None,
+        language=language,
     )
     db.add(rule)
     db.commit()

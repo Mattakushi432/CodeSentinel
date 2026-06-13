@@ -34,9 +34,14 @@
       {% endif %}
     </div>
 
-    <div class="text-xs text-gray-500 font-mono">
-      Webhook URL:
-      <span class="text-gray-300 select-all">{{ base_url }}/webhooks/{{ repo.id }}</span>
+    <div class="text-xs text-gray-500 font-mono flex items-center gap-2">
+      <span>Webhook:</span>
+      <span id="wh-{{ repo.id }}" class="text-gray-300 select-all">{{ base_url }}/webhooks/{{ repo.id }}</span>
+      <button
+        onclick="navigator.clipboard.writeText('{{ base_url }}/webhooks/{{ repo.id }}').then(() => { this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy', 1500) })"
+        class="text-gray-600 hover:text-blue-400 transition-colors px-1.5 py-0.5 border border-gray-700 rounded text-xs">
+        Copy
+      </button>
     </div>
 
     <form method="post" action="/repos/{{ repo.id }}/delete">

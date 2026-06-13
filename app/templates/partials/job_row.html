@@ -13,10 +13,9 @@
 
 <div class="flex-1 min-w-0">
   <div class="text-sm text-white truncate">
+    <a href="/reviews/{{ job.id }}" class="hover:text-blue-400">{{ job.pr_title or "PR #" ~ job.pr_number }}</a>
     {% if job.pr_url %}
-    <a href="{{ job.pr_url }}" target="_blank" class="hover:text-blue-400">{{ job.pr_title or "PR #" ~ job.pr_number }}</a>
-    {% else %}
-    {{ job.pr_title or "PR #" ~ job.pr_number }}
+    <a href="{{ job.pr_url }}" target="_blank" class="ml-2 text-xs text-gray-600 hover:text-gray-400">↗</a>
     {% endif %}
   </div>
   <div class="text-xs text-gray-500">

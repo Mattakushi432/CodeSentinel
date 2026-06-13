@@ -24,7 +24,7 @@ jobs:
         run: ruff check app/ tests/
 
       - name: Run tests
-        run: pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=60
+        run: pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=85
         env:
           SECRET_KEY: test-secret-key-for-ci
           DATABASE_URL: sqlite:///./test.db

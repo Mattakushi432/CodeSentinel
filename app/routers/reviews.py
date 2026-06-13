@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models.user import User
 from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import ReviewJob
+from app.models.user import User
 from app.routers.auth import require_user
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
@@ -63,3 +64,23 @@ async def job_status(
     org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
     return templates.TemplateResponse("partials/job_row.html", {"request": request, "job": job})
+
+
+@router.get("/{job_id}", response_class=HTMLResponse)
+async def review_detail(
+    job_id: int,
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Detailed view of a single review job with all issues."""
+    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
+    if not org:
+        raise HTTPException(status_code=404)
+    job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return templates.TemplateResponse(
+        "dashboard/review_detail.html",
+        {"request": request, "user": user, "org": org, "job": job},
+    )
