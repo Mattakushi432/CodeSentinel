@@ -29,5 +29,4 @@ def get_db():
 
 
 def init_db():
-    from app.models import api_key, organization, repository, review, review_job, rule, used_token, user  # noqa: F401
-    Base.metadata.create_all(bind=engine)
+    pass
