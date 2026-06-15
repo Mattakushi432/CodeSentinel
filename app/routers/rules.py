@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -8,9 +7,9 @@ from app.models.organization import Organization
 from app.models.rule import Rule
 from app.models.user import User
 from app.routers.auth import require_org, require_user
+from app.templates_config import templates
 
 router = APIRouter(prefix="/rules", tags=["rules"])
-templates = Jinja2Templates(directory="app/templates")
 
 _ALLOWED_LANGUAGES = {"all", "python", "javascript", "go", "rust", "java", "typescript", "ruby", "php", "csharp"}
 

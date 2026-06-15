@@ -176,3 +176,13 @@ def test_login_rate_limit_enforced(client: TestClient):
 
         resp = client.post("/auth/login", data={"email": "rl@example.com"})
         assert resp.status_code == 429
+
+
+# ---------------------------------------------------------------------------
+# dev-login unavailable in production (Phase 3 fix)
+# ---------------------------------------------------------------------------
+
+def test_dev_login_unavailable_when_dev_mode_false(client: TestClient):
+    """GET /auth/dev-login must return 404 when DEV_MODE is not set (production default)."""
+    resp = client.get("/auth/dev-login", follow_redirects=False)
+    assert resp.status_code == 404
