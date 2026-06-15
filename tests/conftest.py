@@ -30,6 +30,17 @@ def db(setup_database):
         session.close()
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset in-memory rate limit counters between tests to prevent bleed-through."""
+    try:
+        from app.limiter import limiter
+        limiter._storage.reset()
+    except (AttributeError, Exception):
+        pass
+    yield
+
+
 @pytest.fixture
 def client(db):
     def override_db():

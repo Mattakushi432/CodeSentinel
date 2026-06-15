@@ -141,3 +141,38 @@ def test_logout_without_login_redirects_to_login(client: TestClient):
     resp = client.get("/auth/logout", follow_redirects=False)
     assert resp.status_code in (302, 303)
     assert "/auth/login" in resp.headers["location"]
+
+
+# ---------------------------------------------------------------------------
+# Token replay (CRITICAL fix)
+# ---------------------------------------------------------------------------
+
+def test_verify_token_replay_rejected(client: TestClient, db: Session):
+    """The same magic link token must only be accepted once."""
+    email = f"replay-{uuid.uuid4()}@example.com"
+    token = generate_magic_token(email)
+
+    # First use — should succeed and redirect
+    resp1 = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    assert resp1.status_code in (302, 303)
+    assert resp1.headers["location"] == "/"
+
+    # Second use — same token must be rejected
+    resp2 = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    assert resp2.status_code == 200
+    assert b"already used" in resp2.content.lower()
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting on /auth/login (HIGH fix)
+# ---------------------------------------------------------------------------
+
+def test_login_rate_limit_enforced(client: TestClient):
+    """6th POST to /auth/login within a minute should return 429."""
+    with patch("app.routers.auth.send_magic_link", new_callable=AsyncMock):
+        for _ in range(5):
+            resp = client.post("/auth/login", data={"email": "rl@example.com"})
+            assert resp.status_code == 200
+
+        resp = client.post("/auth/login", data={"email": "rl@example.com"})
+        assert resp.status_code == 429

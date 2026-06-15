@@ -35,7 +35,7 @@ def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, acce
 
 
 @router.get("", response_class=HTMLResponse)
-async def list_repos(
+def list_repos(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -50,7 +50,7 @@ async def list_repos(
 
 
 @router.post("")
-async def add_repo(
+def add_repo(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -102,7 +102,7 @@ async def add_repo(
 
 
 @router.post("/{repo_id}/delete")
-async def delete_repo(
+def delete_repo(
     repo_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),

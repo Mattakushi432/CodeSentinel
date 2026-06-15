@@ -16,7 +16,7 @@ _ALLOWED_LANGUAGES = {"all", "python", "javascript", "go", "rust", "java", "type
 
 
 @router.get("", response_class=HTMLResponse)
-async def list_rules(
+def list_rules(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -27,7 +27,7 @@ async def list_rules(
 
 
 @router.post("")
-async def add_rule(
+def add_rule(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -57,7 +57,7 @@ async def add_rule(
 
 
 @router.post("/{rule_id}/toggle")
-async def toggle_rule(
+def toggle_rule(
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
@@ -70,7 +70,7 @@ async def toggle_rule(
 
 
 @router.post("/{rule_id}/delete")
-async def delete_rule(
+def delete_rule(
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
