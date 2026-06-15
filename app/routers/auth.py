@@ -67,8 +67,13 @@ async def verify_magic_link(request: Request, token: str, db: Session = Depends(
 
 
 @router.get("/dev-login")
-async def dev_login(request: Request, email: str = "zakr1995@gmail.com", db: Session = Depends(get_db)):
-    """Dev-only shortcut — bypasses email sending."""
+async def dev_login(request: Request, email: str = "dev@localhost", db: Session = Depends(get_db)):
+    """Dev-only shortcut — only available when DEV_MODE=true."""
+    from fastapi import HTTPException
+
+    if not get_settings().dev_mode:
+        raise HTTPException(status_code=404)
+
     user = db.query(User).filter(User.email == email).first()
     if not user:
         user = User(email=email, plan="free")
@@ -95,9 +100,12 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | 
     return db.get(User, user_id)
 
 
+class _LoginRequired(Exception):
+    """Raised by require_user when no authenticated session exists."""
+
+
 def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if not user:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=302, headers={"Location": "/auth/login"})
+        raise _LoginRequired()
     return user

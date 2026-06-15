@@ -84,8 +84,10 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
         if action not in ("opened", "synchronize", "reopened"):
             return JSONResponse({"status": "ignored", "action": action})
 
-        pr = data["pull_request"]
-        pr_number = pr["number"]
+        try:
+            pr_number = int(data["pull_request"]["number"])
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid payload: missing or non-integer pr number")
 
     elif repo.git_host == "gitlab":
         token = request.headers.get("X-Gitlab-Token")
@@ -105,7 +107,10 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
         if action not in ("open", "update", "reopen"):
             return JSONResponse({"status": "ignored", "action": action})
 
-        pr_number = data["object_attributes"]["iid"]
+        try:
+            pr_number = int(data["object_attributes"]["iid"])
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid payload: missing or non-integer iid")
 
     elif repo.git_host == "gitea":
         sig = request.headers.get("X-Gitea-Signature")
@@ -121,7 +126,10 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
         if action not in ("opened", "synchronize", "reopened"):
             return JSONResponse({"status": "ignored"})
 
-        pr_number = data["pull_request"]["number"]
+        try:
+            pr_number = int(data["pull_request"]["number"])
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid payload: missing or non-integer pr number")
 
     else:
         raise HTTPException(status_code=400, detail="Unknown git host")
