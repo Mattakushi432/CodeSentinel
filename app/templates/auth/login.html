@@ -1,45 +1,170 @@
 {% extends "base.html" %}
-
 {% block title %}Login — CodeSentinel{% endblock %}
 
+{% block auth_canvas %}
+<canvas id="three-canvas" aria-hidden="true"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(function () {
+  var canvas = document.getElementById('three-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 50);
+  camera.position.z = 10;
+
+  var NODE_COUNT = 130;
+  var SPREAD = 14;
+  var MAX_DIST = 2.8;
+
+  var posData = new Float32Array(NODE_COUNT * 3);
+  var nodeList = [];
+  for (var i = 0; i < NODE_COUNT; i++) {
+    var x = (Math.random() - 0.5) * SPREAD;
+    var y = (Math.random() - 0.5) * SPREAD;
+    var z = (Math.random() - 0.5) * SPREAD;
+    posData[i * 3]     = x;
+    posData[i * 3 + 1] = y;
+    posData[i * 3 + 2] = z;
+    nodeList.push({ x: x, y: y, z: z });
+  }
+
+  var nodeGeo = new THREE.BufferGeometry();
+  nodeGeo.setAttribute('position', new THREE.BufferAttribute(posData, 3));
+  var nodeMat = new THREE.PointsMaterial({ color: 0x3b82f6, size: 0.07, transparent: true, opacity: 0.85 });
+  scene.add(new THREE.Points(nodeGeo, nodeMat));
+
+  var accentCount = 22;
+  var accentData = new Float32Array(accentCount * 3);
+  for (var j = 0; j < accentCount; j++) {
+    accentData[j * 3]     = (Math.random() - 0.5) * SPREAD;
+    accentData[j * 3 + 1] = (Math.random() - 0.5) * SPREAD;
+    accentData[j * 3 + 2] = (Math.random() - 0.5) * SPREAD;
+  }
+  var accentGeo = new THREE.BufferGeometry();
+  accentGeo.setAttribute('position', new THREE.BufferAttribute(accentData, 3));
+  var accentMat = new THREE.PointsMaterial({ color: 0x8b5cf6, size: 0.13, transparent: true, opacity: 0.7 });
+  scene.add(new THREE.Points(accentGeo, accentMat));
+
+  var lineVerts = [];
+  for (var a = 0; a < NODE_COUNT; a++) {
+    for (var b = a + 1; b < NODE_COUNT; b++) {
+      var dx = nodeList[a].x - nodeList[b].x;
+      var dy = nodeList[a].y - nodeList[b].y;
+      var dz = nodeList[a].z - nodeList[b].z;
+      if (Math.sqrt(dx*dx + dy*dy + dz*dz) < MAX_DIST) {
+        lineVerts.push(
+          nodeList[a].x, nodeList[a].y, nodeList[a].z,
+          nodeList[b].x, nodeList[b].y, nodeList[b].z
+        );
+      }
+    }
+  }
+  var lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVerts), 3));
+  var lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.09 });
+  scene.add(new THREE.LineSegments(lineGeo, lineMat));
+
+  var accentLineVerts = [];
+  for (var p = 0; p < accentCount; p++) {
+    var ap = { x: accentData[p*3], y: accentData[p*3+1], z: accentData[p*3+2] };
+    for (var q = 0; q < NODE_COUNT; q++) {
+      var ndx = nodeList[q].x - ap.x;
+      var ndy = nodeList[q].y - ap.y;
+      var ndz = nodeList[q].z - ap.z;
+      if (Math.sqrt(ndx*ndx + ndy*ndy + ndz*ndz) < MAX_DIST * 0.9) {
+        accentLineVerts.push(ap.x, ap.y, ap.z, nodeList[q].x, nodeList[q].y, nodeList[q].z);
+      }
+    }
+  }
+  if (accentLineVerts.length > 0) {
+    var alGeo = new THREE.BufferGeometry();
+    alGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(accentLineVerts), 3));
+    var alMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.08 });
+    scene.add(new THREE.LineSegments(alGeo, alMat));
+  }
+
+  var mx = 0, my = 0, cx = 0, cy = 0;
+  document.addEventListener('mousemove', function (e) {
+    mx = (e.clientX / window.innerWidth - 0.5) * 1.2;
+    my = -(e.clientY / window.innerHeight - 0.5) * 0.8;
+  });
+
+  window.addEventListener('resize', function () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  var autoY = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    autoY += 0.0025;
+    cx += (mx - cx) * 0.04;
+    cy += (my - cy) * 0.04;
+    scene.rotation.y = autoY + cx;
+    scene.rotation.x = cy;
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+{% endblock %}
+
 {% block auth_content %}
-<div class="w-full max-w-sm">
-  <div class="text-center mb-8">
-    <h1 class="text-2xl font-bold text-white">CodeSentinel</h1>
-    <p class="text-gray-400 mt-1 text-sm">AI Code Review on your infrastructure</p>
-  </div>
-
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
-    <h2 class="text-lg font-semibold text-white mb-1">Sign in</h2>
-    <p class="text-sm text-gray-400 mb-6">We'll email you a magic link — no password needed.</p>
-
-    {% if error %}
-    <div class="mb-4 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-      {{ error }}
+<div class="auth-card">
+  <div class="auth-brand">
+    <div class="auth-logo-row">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="sg-auth" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#3b82f6"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 2.5L4.5 7.5v8.5c0 7.2 5 13.9 11.5 15.5C22.5 29.9 27.5 23.2 27.5 16V7.5L16 2.5z" fill="url(#sg-auth)" opacity="0.95"/>
+          <ellipse cx="16" cy="16" rx="4.5" ry="3.2" stroke="white" stroke-width="1.4" fill="none" opacity="0.9"/>
+          <circle cx="16" cy="16" r="1.4" fill="white" opacity="0.95"/>
+        </svg>
+      </div>
+      <span class="auth-logo-name">CodeSentinel</span>
     </div>
-    {% endif %}
-
-    <form method="post" action="/auth/login">
-      <label class="block text-sm text-gray-400 mb-1">Email address</label>
-      <input
-        type="email"
-        name="email"
-        required
-        autofocus
-        placeholder="you@company.com"
-        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-      />
-      <button
-        type="submit"
-        class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
-      >
-        Send magic link
-      </button>
-    </form>
+    <p class="auth-tagline">AI Code Review on your infrastructure</p>
   </div>
 
-  <p class="text-center text-xs text-gray-600 mt-6">
-    Self-hosted · MIT License · <a href="https://github.com/zakrevskyimaksym/CodeSentinel" class="hover:text-gray-400">GitHub</a>
-  </p>
+  {% if error %}
+  <div class="banner-error" role="alert" style="margin-bottom:16px;">{{ error }}</div>
+  {% endif %}
+
+  <p class="auth-section-title">Sign in</p>
+  <p class="auth-section-desc">We'll email you a magic link — no password needed.</p>
+
+  <form method="post" action="/auth/login" novalidate>
+    <label class="input-label" for="email">Email address</label>
+    <input
+      id="email"
+      type="email"
+      name="email"
+      required
+      autofocus
+      placeholder="you@company.com"
+      class="input"
+      aria-required="true"
+      autocomplete="email"
+    />
+    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:14px;">
+      Send magic link
+    </button>
+  </form>
+
+  <div class="auth-footer">
+    Self-hosted · MIT License ·
+    <a href="https://github.com/zakrevskyimaksym/CodeSentinel" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
 </div>
 {% endblock %}
