@@ -19,6 +19,11 @@ class Settings(BaseSettings):
                 "SECRET_KEY must not be the default placeholder. "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
+        if len(self.secret_key) < 32:
+            raise ValueError(
+                "SECRET_KEY must be at least 32 characters. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
         return self
     base_url: str = "http://localhost:8000"
 

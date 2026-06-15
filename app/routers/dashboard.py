@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.organization import Organization
@@ -39,6 +39,7 @@ def dashboard(
     recent_jobs = (
         db.query(ReviewJob)
         .join(Repository)
+        .options(joinedload(ReviewJob.repository), joinedload(ReviewJob.review))
         .filter(Repository.org_id == org.id)
         .order_by(ReviewJob.created_at.desc())
         .limit(5)

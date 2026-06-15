@@ -73,6 +73,9 @@ def detect_languages(diff: DiffResult) -> str:
     return ", ".join(sorted(langs))
 
 
+_MAX_CUSTOM_RULES_CHARS = 4000  # guard against unbounded context from many/large rules
+
+
 def build_system_prompt(rules: list[Rule], diff: DiffResult | None = None) -> str:
     language_context = detect_languages(diff) if diff else "general software engineering"
     if rules:
@@ -81,6 +84,8 @@ def build_system_prompt(rules: list[Rule], diff: DiffResult | None = None) -> st
             for r in rules
             if r.enabled
         )
+        if len(custom) > _MAX_CUSTOM_RULES_CHARS:
+            custom = custom[:_MAX_CUSTOM_RULES_CHARS] + "\n[custom rules truncated]"
     else:
         custom = "- Apply general best practices for the detected languages."
     return _SYSTEM_PROMPT_TEMPLATE.format(custom_rules=custom, language_context=language_context)

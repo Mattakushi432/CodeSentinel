@@ -27,17 +27,21 @@ class BillingWebhookResponse(BaseModel):
 
 async def _stripe_run(settings: Settings, fn, **kwargs):
     """Run a blocking Stripe SDK call in a thread pool."""
-    stripe.api_key = settings.stripe_secret_key
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, functools.partial(fn, **kwargs))
+    api_key = settings.stripe_secret_key
+    loop = asyncio.get_running_loop()
+    def _execute():
+        stripe.api_key = api_key
+        return fn(**kwargs)
+    return await loop.run_in_executor(None, _execute)
 
 
 @router.get("", response_class=HTMLResponse)
 def billing_page(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
     org = db.query(Organization).filter(Organization.owner_id == user.id).first()
+    success = "success" in request.query_params
     return templates.TemplateResponse(
         "dashboard/billing.html",
-        {"request": request, "user": user, "org": org},
+        {"request": request, "user": user, "org": org, "success": success},
     )
 
 

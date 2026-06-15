@@ -2,120 +2,118 @@
 {% block title %}Billing — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-  <h1 class="text-xl font-semibold text-white">Billing</h1>
-  <p class="text-sm text-gray-400 mt-1">Manage your subscription</p>
+<div class="fade-up" style="margin-bottom:24px;">
+  <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Billing</h1>
+  <p class="text-muted" style="font-size:13px;margin:0;">Manage your subscription</p>
 </div>
 
-{% if request.query_params.get('success') %}
-<div class="mb-4 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-400">
+{% if success %}
+<div class="banner-success fade-up" role="alert" style="margin-bottom:16px;">
   Subscription activated! Your plan has been updated.
 </div>
 {% endif %}
 
 <!-- Current plan -->
-<div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
-  <div class="flex items-center justify-between">
+<div class="card fade-up anim-d1" style="padding:20px 22px;margin-bottom:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
     <div>
-      <div class="text-sm text-gray-400">Current plan</div>
-      <div class="text-2xl font-bold mt-1
-        {% if org and org.plan == 'team' %}text-purple-400
-        {% elif org and org.plan == 'pro' %}text-blue-400
-        {% else %}text-gray-300{% endif %}">
+      <div class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Current plan</div>
+      <div class="stat-value
+        {%- if org and org.plan == 'team' %} text-violet
+        {%- elif org and org.plan == 'pro' %} text-blue
+        {%- else %} text-sub{%- endif %}">
         {{ (org.plan if org else 'free') | upper }}
       </div>
     </div>
-    <div class="text-right text-sm text-gray-400">
-      {% if org %}
-      <div>Repo limit: <span class="text-white">{{ org.repo_limit }}</span></div>
-      {% endif %}
+    {% if org %}
+    <div style="text-align:right;">
+      <div class="text-muted" style="font-size:12px;">Repo limit</div>
+      <div style="font-size:20px;font-weight:700;">{{ org.repo_limit }}</div>
     </div>
+    {% endif %}
   </div>
 </div>
 
-<!-- Plans -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Plans grid -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px;">
+
   <!-- Free -->
-  <div class="bg-gray-900 border {% if not org or org.plan == 'free' %}border-gray-600{% else %}border-gray-800{% endif %} rounded-xl p-5">
-    <div class="text-white font-semibold">Free</div>
-    <div class="text-2xl font-bold text-white mt-2">$0<span class="text-sm font-normal text-gray-400">/mo</span></div>
-    <ul class="text-sm text-gray-400 mt-4 space-y-2">
-      <li>✓ 1 repository</li>
-      <li>✓ Public repos only</li>
-      <li>✓ Unlimited reviews</li>
-      <li>✓ Self-hosted</li>
+  <div class="card fade-up anim-d1" style="padding:18px 20px;{% if not org or org.plan == 'free' %}border-color:rgba(255,255,255,0.12);{% endif %}">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Free</div>
+    <div class="stat-value" style="font-size:24px;margin-bottom:12px;">$0<span style="font-size:13px;font-weight:400;" class="text-muted">/mo</span></div>
+    <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:6px;" class="text-muted" aria-label="Free plan features">
+      <li style="font-size:12px;"><span class="text-green">✓</span> 1 repository</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Public repos only</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Unlimited reviews</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Self-hosted</li>
     </ul>
     {% if not org or org.plan == 'free' %}
-    <div class="mt-4 text-xs text-gray-500 text-center">Current plan</div>
+    <div class="text-muted" style="font-size:11px;text-align:center;">Current plan</div>
     {% endif %}
   </div>
 
   <!-- Pro -->
-  <div class="bg-gray-900 border {% if org and org.plan == 'pro' %}border-blue-500{% else %}border-gray-800{% endif %} rounded-xl p-5 relative">
+  <div class="card fade-up anim-d2" style="padding:18px 20px;position:relative;{% if org and org.plan == 'pro' %}border-color:rgba(59,130,246,0.4);box-shadow:var(--shadow-glow-blue);{% endif %}">
     {% if org and org.plan != 'pro' %}
-    <div class="absolute -top-2 left-1/2 -translate-x-1/2 text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Popular</div>
+    <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:10px;background:var(--color-blue);color:#fff;padding:2px 8px;border-radius:999px;font-weight:600;letter-spacing:0.04em;">Popular</div>
     {% endif %}
-    <div class="text-white font-semibold">Pro</div>
-    <div class="text-2xl font-bold text-white mt-2">$29<span class="text-sm font-normal text-gray-400">/mo</span></div>
-    <ul class="text-sm text-gray-400 mt-4 space-y-2">
-      <li>✓ 5 repositories</li>
-      <li>✓ Private repos</li>
-      <li>✓ Custom review rules</li>
-      <li>✓ Email notifications</li>
-      <li>✓ Priority queue</li>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Pro</div>
+    <div class="stat-value text-blue" style="font-size:24px;margin-bottom:12px;">$29<span style="font-size:13px;font-weight:400;" class="text-muted">/mo</span></div>
+    <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:6px;" class="text-muted" aria-label="Pro plan features">
+      <li style="font-size:12px;"><span class="text-green">✓</span> 5 repositories</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Private repos</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Custom review rules</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Email notifications</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Priority queue</li>
     </ul>
     {% if org and org.plan == 'pro' %}
-    <div class="mt-4 text-xs text-gray-500 text-center">Current plan</div>
+    <div class="text-muted" style="font-size:11px;text-align:center;">Current plan</div>
     {% elif org and org.plan != 'team' %}
-    <form method="post" action="/billing/checkout/pro" class="mt-4">
-      <button class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
-        Upgrade to Pro
-      </button>
+    <form method="post" action="/billing/checkout/pro">
+      <button class="btn btn-primary" style="width:100%;">Upgrade to Pro</button>
     </form>
     {% endif %}
   </div>
 
   <!-- Team -->
-  <div class="bg-gray-900 border {% if org and org.plan == 'team' %}border-purple-500{% else %}border-gray-800{% endif %} rounded-xl p-5">
-    <div class="text-white font-semibold">Team</div>
-    <div class="text-2xl font-bold text-white mt-2">$99<span class="text-sm font-normal text-gray-400">/mo</span></div>
-    <ul class="text-sm text-gray-400 mt-4 space-y-2">
-      <li>✓ Unlimited repositories</li>
-      <li>✓ All Pro features</li>
-      <li>✓ Multiple members</li>
-      <li>✓ Audit logs</li>
-      <li>✓ SLA support</li>
+  <div class="card fade-up anim-d3" style="padding:18px 20px;{% if org and org.plan == 'team' %}border-color:rgba(139,92,246,0.4);box-shadow:var(--shadow-glow-violet);{% endif %}">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Team</div>
+    <div class="stat-value text-violet" style="font-size:24px;margin-bottom:12px;">$99<span style="font-size:13px;font-weight:400;" class="text-muted">/mo</span></div>
+    <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:6px;" class="text-muted" aria-label="Team plan features">
+      <li style="font-size:12px;"><span class="text-green">✓</span> Unlimited repositories</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> All Pro features</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Multiple members</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> Audit logs</li>
+      <li style="font-size:12px;"><span class="text-green">✓</span> SLA support</li>
     </ul>
     {% if org and org.plan == 'team' %}
-    <div class="mt-4 text-xs text-gray-500 text-center">Current plan</div>
+    <div class="text-muted" style="font-size:11px;text-align:center;">Current plan</div>
     {% else %}
-    <form method="post" action="/billing/checkout/team" class="mt-4">
-      <button class="w-full bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
-        Upgrade to Team
-      </button>
+    <form method="post" action="/billing/checkout/team">
+      <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa);">Upgrade to Team</button>
     </form>
     {% endif %}
   </div>
 </div>
 
 {% if org and org.plan != 'free' and org.stripe_subscription_id %}
-<div class="mt-6 text-center">
+<div style="text-align:center;margin-bottom:12px;">
   <form method="post" action="/billing/portal">
-    <button class="text-sm text-gray-400 hover:text-white underline transition-colors">
-      Manage subscription in Stripe Portal
-    </button>
+    <button class="btn btn-ghost" style="font-size:12px;">Manage subscription in Stripe Portal</button>
   </form>
 </div>
 {% endif %}
 
-<div class="mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4">
-  <div class="text-xs text-gray-400">
-    Monthly reviews used: <span class="text-white">{{ org.reviews_this_month if org else 0 }}</span>
-    / <span class="text-white">{{ org.monthly_review_limit if org else 30 }}</span>
+<div class="card fade-up anim-d4" style="padding:14px 18px;">
+  <div class="text-muted" style="font-size:12px;">
+    Monthly reviews used:
+    <span style="color:var(--color-text);font-weight:600;">{{ org.reviews_this_month if org else 0 }}</span>
+    /
+    <span style="color:var(--color-text);font-weight:600;">{{ org.monthly_review_limit if org else 30 }}</span>
   </div>
 </div>
 
-<p class="text-xs text-gray-600 mt-4 text-center">
+<p class="text-muted" style="font-size:11px;text-align:center;margin-top:16px;">
   Payments processed by Stripe · Cancel anytime · No refunds for partial months
 </p>
 {% endblock %}

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -65,7 +66,15 @@ def verify_magic_link(
         )
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    if db.get(UsedToken, token_hash):
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=settings.magic_link_expiry)
+
+    # Atomic insert — the primary-key constraint on token_hash turns concurrent
+    # duplicate requests into an IntegrityError instead of a silent double-login.
+    try:
+        db.add(UsedToken(token_hash=token_hash, expires_at=expires_at))
+        db.flush()
+    except IntegrityError:
+        db.rollback()
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Link already used. Request a new one."},
@@ -79,8 +88,6 @@ def verify_magic_link(
         org = Organization(name=email.split("@")[0], owner_id=user.id, plan="free")
         db.add(org)
 
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=settings.magic_link_expiry)
-    db.add(UsedToken(token_hash=token_hash, expires_at=expires_at))
     db.commit()
     db.refresh(user)
 
@@ -88,8 +95,14 @@ def verify_magic_link(
     return RedirectResponse(url="/", status_code=302)
 
 
-def dev_login(request: Request, email: str = "dev@localhost", db: Session = Depends(get_db)):
+def dev_login(
+    request: Request,
+    email: str = "dev@localhost",
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
     """Dev-only shortcut — registered only when DEV_MODE=true in create_app()."""
+    assert settings.dev_mode, "dev_login called outside dev mode"
     user = db.query(User).filter(User.email == email).first()
     if not user:
         user = User(email=email, plan="free")

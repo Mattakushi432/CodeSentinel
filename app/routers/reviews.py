@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.organization import Organization
@@ -33,8 +33,16 @@ def list_reviews(
 
     per_page = 20
     total = query.count()
-    jobs = query.order_by(ReviewJob.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    jobs = (
+        query.options(joinedload(ReviewJob.repository), joinedload(ReviewJob.review))
+        .order_by(ReviewJob.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
 
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page_range = range(max(1, page - 3), min(total_pages + 1, page + 4))
     return templates.TemplateResponse(
         "dashboard/reviews.html",
         {
@@ -47,7 +55,8 @@ def list_reviews(
             "page": page,
             "total": total,
             "per_page": per_page,
-            "total_pages": max(1, (total + per_page - 1) // per_page),
+            "total_pages": total_pages,
+            "page_range": page_range,
         },
     )
 
@@ -60,7 +69,13 @@ def job_status(
     db: Session = Depends(get_db),
 ):
     """HTMX polling endpoint for live job status updates."""
-    job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
+    job = (
+        db.query(ReviewJob)
+        .join(Repository)
+        .options(joinedload(ReviewJob.repository), joinedload(ReviewJob.review))
+        .filter(ReviewJob.id == job_id, Repository.org_id == org.id)
+        .first()
+    )
     return templates.TemplateResponse("partials/job_row.html", {"request": request, "job": job})
 
 
@@ -73,7 +88,13 @@ def review_detail(
     db: Session = Depends(get_db),
 ):
     """Detailed view of a single review job with all issues."""
-    job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
+    job = (
+        db.query(ReviewJob)
+        .join(Repository)
+        .options(joinedload(ReviewJob.repository), joinedload(ReviewJob.review))
+        .filter(ReviewJob.id == job_id, Repository.org_id == org.id)
+        .first()
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Review not found")
     return templates.TemplateResponse(

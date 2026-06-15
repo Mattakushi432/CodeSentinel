@@ -6,7 +6,7 @@ import tempfile
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
 os.close(_DB_FD)  # release OS fd; SQLAlchemy manages its own connections
 os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests-00000000")
 atexit.register(lambda: os.unlink(_DB_PATH) if os.path.exists(_DB_PATH) else None)
 
 import pytest  # noqa: E402

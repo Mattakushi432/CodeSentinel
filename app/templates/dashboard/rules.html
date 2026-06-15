@@ -2,46 +2,43 @@
 {% block title %}Rules — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
+<div class="fade-up" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
   <div>
-    <h1 class="text-xl font-semibold text-white">Review Rules</h1>
-    <p class="text-sm text-gray-400 mt-1">Custom rules injected into every code review prompt</p>
+    <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Review Rules</h1>
+    <p class="text-muted" style="font-size:13px;margin:0;">Custom rules injected into every code review prompt</p>
   </div>
-  <button onclick="document.getElementById('add-rule-modal').classList.remove('hidden')"
-    class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-    + Add rule
-  </button>
+  <button id="open-add-rule" class="btn btn-primary" style="white-space:nowrap;">+ Add rule</button>
 </div>
 
 {% if rules %}
-<div class="space-y-3">
+<div class="card fade-up anim-d1">
   {% for rule in rules %}
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-start gap-4 {% if not rule.enabled %}opacity-50{% endif %}">
-    <div class="flex-1">
-      <div class="flex items-center gap-2">
-        <span class="text-white font-medium text-sm">{{ rule.name }}</span>
+  <div class="list-row" style="{% if not rule.enabled %}opacity:0.5;{% endif %}">
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:var(--color-text);">{{ rule.name }}</span>
         {% if rule.language and rule.language != 'all' %}
-        <span class="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded">{{ rule.language }}</span>
+        <span class="badge badge-processing">{{ rule.language }}</span>
         {% endif %}
-        <span class="text-xs px-1.5 py-0.5 rounded {% if rule.enabled %}bg-green-400/10 text-green-400{% else %}bg-gray-700 text-gray-500{% endif %}">
+        <span class="badge {% if rule.enabled %}badge-done{% else %}badge-skipped{% endif %}">
           {% if rule.enabled %}enabled{% else %}disabled{% endif %}
         </span>
       </div>
       {% if rule.description %}
-      <p class="text-sm text-gray-400 mt-1">{{ rule.description }}</p>
+      <p class="text-muted" style="font-size:12px;margin:4px 0 0;">{{ rule.description }}</p>
       {% endif %}
       {% if rule.prompt_snippet %}
-      <code class="text-xs text-gray-500 mt-1 block font-mono">{{ rule.prompt_snippet[:120] }}{% if rule.prompt_snippet|length > 120 %}...{% endif %}</code>
+      <code style="font-size:11px;color:var(--color-text-muted);margin-top:4px;display:block;">{{ rule.prompt_snippet[:120] }}{% if rule.prompt_snippet|length > 120 %}...{% endif %}</code>
       {% endif %}
     </div>
-    <div class="flex gap-2 flex-shrink-0">
+    <div style="display:flex;gap:8px;flex-shrink:0;">
       <form method="post" action="/rules/{{ rule.id }}/toggle">
-        <button class="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;">
           {% if rule.enabled %}Disable{% else %}Enable{% endif %}
         </button>
       </form>
       <form method="post" action="/rules/{{ rule.id }}/delete">
-        <button class="text-xs text-gray-600 hover:text-red-400 transition-colors"
+        <button class="btn btn-danger" style="font-size:11px;"
           onclick="return confirm('Delete this rule?')">Delete</button>
       </form>
     </div>
@@ -49,42 +46,45 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-  <p class="text-sm text-gray-500">No custom rules. Add one to customize your reviews.</p>
-  <p class="text-xs text-gray-600 mt-2">Example: "Flag any hardcoded credentials" or "Require type hints on all Python functions"</p>
+<div class="card fade-up anim-d1">
+  <div class="empty-state">
+    <p class="empty-state-text">No custom rules yet.</p>
+    <p class="text-muted" style="font-size:12px;margin-top:4px;opacity:0.6;">
+      Example: "Flag any hardcoded credentials" or "Require type hints on all Python functions"
+    </p>
+  </div>
 </div>
 {% endif %}
 
 <!-- Add rule modal -->
-<div id="add-rule-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-white">Add rule</h2>
-      <button onclick="document.getElementById('add-rule-modal').classList.add('hidden')" class="text-gray-500 hover:text-gray-300">✕</button>
+<div id="add-rule-modal" role="dialog" aria-modal="true" aria-labelledby="add-rule-title"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:50;">
+  <div class="card" style="padding:24px;width:100%;max-width:440px;margin:0 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 id="add-rule-title" style="font-size:16px;font-weight:700;margin:0;">Add rule</h2>
+      <button id="close-add-rule" class="btn btn-ghost" style="font-size:18px;padding:2px 8px;line-height:1;" aria-label="Close">✕</button>
     </div>
-
-    <form method="post" action="/rules" class="space-y-4">
+    <form method="post" action="/rules" style="display:flex;flex-direction:column;gap:14px;">
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Rule name</label>
-        <input type="text" name="name" required placeholder="No hardcoded secrets"
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <label class="input-label" for="rule-name">Rule name</label>
+        <input id="rule-name" type="text" name="name" required placeholder="No hardcoded secrets" class="input" />
       </div>
-
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Description</label>
-        <input type="text" name="description" placeholder="Flag any hardcoded API keys, passwords, or tokens"
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <label class="input-label" for="rule-description">Description</label>
+        <input id="rule-description" type="text" name="description"
+          placeholder="Flag any hardcoded API keys, passwords, or tokens" class="input" />
       </div>
-
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Prompt snippet <span class="text-gray-600">(injected into review prompt)</span></label>
-        <textarea name="prompt_snippet" rows="3" placeholder="- Flag any hardcoded API keys, passwords, or connection strings as HIGH severity"
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+        <label class="input-label" for="rule-snippet">
+          Prompt snippet <span class="text-muted">(injected into review prompt)</span>
+        </label>
+        <textarea id="rule-snippet" name="prompt_snippet" rows="3"
+          placeholder="- Flag any hardcoded API keys, passwords, or connection strings as HIGH severity"
+          class="input" style="resize:none;"></textarea>
       </div>
-
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Language filter</label>
-        <select name="language" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <label class="input-label" for="rule-language">Language filter</label>
+        <select id="rule-language" name="language" class="input">
           <option value="all">All languages</option>
           <option value="python">Python</option>
           <option value="javascript">JavaScript / TypeScript</option>
@@ -93,17 +93,23 @@
           <option value="java">Java</option>
         </select>
       </div>
-
-      <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
-          Add rule
-        </button>
-        <button type="button" onclick="document.getElementById('add-rule-modal').classList.add('hidden')"
-          class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
-          Cancel
-        </button>
+      <div style="display:flex;gap:8px;padding-top:4px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Add rule</button>
+        <button type="button" id="cancel-add-rule" class="btn btn-ghost">Cancel</button>
       </div>
     </form>
   </div>
 </div>
+
+<script nonce="{{ request.state.csp_nonce }}">
+(function () {
+  var modal = document.getElementById('add-rule-modal');
+  function openModal() { modal.style.display = 'flex'; }
+  function closeModal() { modal.style.display = 'none'; }
+  document.getElementById('open-add-rule').addEventListener('click', openModal);
+  document.getElementById('close-add-rule').addEventListener('click', closeModal);
+  document.getElementById('cancel-add-rule').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+})();
+</script>
 {% endblock %}

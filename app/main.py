@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -45,14 +46,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-_SECURITY_HEADERS = {
-    "Content-Security-Policy": (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; "
-        "frame-ancestors 'none';"
-    ),
+_STATIC_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
@@ -63,9 +57,25 @@ _SECURITY_HEADERS = {
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds security headers and generates a per-request CSP nonce for inline scripts."""
+
     async def dispatch(self, request: Request, call_next) -> Response:
+        nonce = secrets.token_urlsafe(16)
+        request.state.csp_nonce = nonce
+
         response = await call_next(request)
-        for header, value in _SECURITY_HEADERS.items():
+
+        csp = (
+            f"default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
+            f"style-src 'self' 'unsafe-inline'; "
+            f"img-src 'self' data:; "
+            f"font-src 'self' https://fonts.gstatic.com; "
+            f"connect-src 'self'; "
+            f"frame-ancestors 'none';"
+        )
+        response.headers["Content-Security-Policy"] = csp
+        for header, value in _STATIC_SECURITY_HEADERS.items():
             response.headers[header] = value
         return response
 

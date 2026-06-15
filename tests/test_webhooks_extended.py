@@ -166,8 +166,8 @@ class TestWebhookDedup:
 
 class TestWebhookRateLimit:
     def test_rate_limit_triggers_after_max_requests(self, client: TestClient, github_repo: Repository):
-        from app.routers.webhooks import _rate_buckets
-        _rate_buckets.clear()
+        from app.limiter import limiter
+        limiter._storage.reset()
 
         for i in range(10):
             payload = json.dumps({"action": "opened", "pull_request": {"number": 200 + i, "title": "T"}}).encode()
@@ -177,7 +177,7 @@ class TestWebhookRateLimit:
                 content=payload,
                 headers={"X-GitHub-Event": "pull_request", "X-Hub-Signature-256": sig, "Content-Type": "application/json"},
             )
-            assert resp.status_code in (200, 200)
+            assert resp.status_code == 200
 
         # 11th request should be rate limited
         payload = json.dumps({"action": "opened", "pull_request": {"number": 300, "title": "T"}}).encode()
@@ -189,4 +189,4 @@ class TestWebhookRateLimit:
         )
         assert resp.status_code == 429
 
-        _rate_buckets.clear()
+        limiter._storage.reset()

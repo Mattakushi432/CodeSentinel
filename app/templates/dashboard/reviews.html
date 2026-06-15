@@ -9,15 +9,18 @@
   </div>
 
   {% if repos %}
-  <select onchange="window.location='/reviews?repo_id=' + (this.value || '')"
-    class="input" style="width:auto;padding:6px 10px;font-size:12px;">
-    <option value="">All repos</option>
-    {% for repo in repos %}
-    <option value="{{ repo.id }}" {% if repo.id == selected_repo_id %}selected{% endif %}>
-      {{ repo.repo_full_name }}
-    </option>
-    {% endfor %}
-  </select>
+  <div>
+    <label for="repo-filter" class="sr-only">Filter by repository</label>
+    <select id="repo-filter" onchange="window.location='/reviews?repo_id=' + (this.value || '')"
+      class="input" style="width:auto;padding:6px 10px;font-size:12px;">
+      <option value="">All repos</option>
+      {% for repo in repos %}
+      <option value="{{ repo.id }}" {% if repo.id == selected_repo_id %}selected{% endif %}>
+        {{ repo.repo_full_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
   {% endif %}
 </div>
 
@@ -38,10 +41,18 @@
 
 {% if total_pages > 1 %}
 <div class="pagination">
-  {% for p in range(1, total_pages + 1) %}
+  {% if page > 4 %}
+  <a href="/reviews?page=1{% if selected_repo_id %}&repo_id={{ selected_repo_id }}{% endif %}" class="page-btn">1</a>
+  {% if page > 5 %}<span class="page-btn" aria-hidden="true">…</span>{% endif %}
+  {% endif %}
+  {% for p in page_range %}
   <a href="/reviews?page={{ p }}{% if selected_repo_id %}&repo_id={{ selected_repo_id }}{% endif %}"
-     class="page-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+     class="page-btn {% if p == page %}active{% endif %}" {% if p == page %}aria-current="page"{% endif %}>{{ p }}</a>
   {% endfor %}
+  {% if page < total_pages - 3 %}
+  {% if page < total_pages - 4 %}<span class="page-btn" aria-hidden="true">…</span>{% endif %}
+  <a href="/reviews?page={{ total_pages }}{% if selected_repo_id %}&repo_id={{ selected_repo_id }}{% endif %}" class="page-btn">{{ total_pages }}</a>
+  {% endif %}
 </div>
 {% endif %}
 
