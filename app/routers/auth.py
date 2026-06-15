@@ -1,6 +1,6 @@
 import re
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -113,14 +113,11 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
     """Returns the user's Organization, or None if not yet created."""
-    from app.models.organization import Organization
     return db.query(Organization).filter(Organization.owner_id == user.id).first()
 
 
 def require_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
     """Returns the user's Organization or raises 404."""
-    from fastapi import HTTPException
-    from app.models.organization import Organization
     org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
