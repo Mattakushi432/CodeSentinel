@@ -32,7 +32,7 @@ CodeSentinel is a self-hosted AI code review platform that automatically reviews
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/zakr1/CodeSentinel.git
+git clone https://github.com/Mattakushi432/CodeSentinel.git
 cd CodeSentinel
 
 # 2. Copy and edit the environment file

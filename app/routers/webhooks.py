@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -15,6 +15,13 @@ from app.models.review_job import JobStatus, ReviewJob
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 logger = logging.getLogger(__name__)
+
+
+class WebhookResponse(BaseModel):
+    status: str
+    job_id: int | None = None
+    event: str | None = None
+    action: str | None = None
 
 # In-memory rate limiter: max 10 webhook requests per repo per 60 seconds
 _RATE_LIMIT_MAX = 10
@@ -52,7 +59,7 @@ def _verify_gitea_signature(payload: bytes, secret: str, signature_header: str |
     return _verify_github_signature(payload, secret, signature_header)
 
 
-@router.post("/{repo_id}")
+@router.post("/{repo_id}", response_model=WebhookResponse)
 async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(get_db)):
     repo = db.query(Repository).filter(Repository.id == repo_id, Repository.active == True).first()  # noqa: E712
     if not repo:
@@ -73,7 +80,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
 
         event_type = request.headers.get("X-GitHub-Event", "")
         if event_type != "pull_request":
-            return JSONResponse({"status": "ignored", "event": event_type})
+            return WebhookResponse(status="ignored", event=event_type)
 
         try:
             data = json.loads(payload_bytes)
@@ -82,7 +89,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
 
         action = data.get("action", "")
         if action not in ("opened", "synchronize", "reopened"):
-            return JSONResponse({"status": "ignored", "action": action})
+            return WebhookResponse(status="ignored", action=action)
 
         try:
             pr_number = int(data["pull_request"]["number"])
@@ -96,7 +103,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
 
         event_type = request.headers.get("X-Gitlab-Event", "")
         if "Merge Request" not in event_type:
-            return JSONResponse({"status": "ignored"})
+            return WebhookResponse(status="ignored")
 
         try:
             data = json.loads(payload_bytes)
@@ -105,7 +112,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
 
         action = data.get("object_attributes", {}).get("action", "")
         if action not in ("open", "update", "reopen"):
-            return JSONResponse({"status": "ignored", "action": action})
+            return WebhookResponse(status="ignored", action=action)
 
         try:
             pr_number = int(data["object_attributes"]["iid"])
@@ -124,7 +131,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
 
         action = data.get("action", "")
         if action not in ("opened", "synchronize", "reopened"):
-            return JSONResponse({"status": "ignored"})
+            return WebhookResponse(status="ignored")
 
         try:
             pr_number = int(data["pull_request"]["number"])
@@ -140,7 +147,7 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
         .first()
     )
     if existing:
-        return JSONResponse({"status": "already_queued", "job_id": existing.id})
+        return WebhookResponse(status="already_queued", job_id=existing.id)
 
     job = ReviewJob(repo_id=repo.id, pr_number=pr_number, status=JobStatus.pending)
     db.add(job)
@@ -148,4 +155,4 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
     db.refresh(job)
 
     logger.info("Queued job %d for repo %d PR #%d", job.id, repo.id, pr_number)
-    return JSONResponse({"status": "queued", "job_id": job.id})
+    return WebhookResponse(status="queued", job_id=job.id)

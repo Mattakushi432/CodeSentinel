@@ -6,11 +6,16 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
+from pydantic import BaseModel
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import init_db
+from app.limiter import limiter
 from app.routers import auth, billing, dashboard, repositories, reviews, rules, webhooks
 from app.worker.tasks import review_worker
 
@@ -24,21 +29,30 @@ _MUTATION_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 class CSRFMiddleware(BaseHTTPMiddleware):
     """Validates Origin/Referer for state-changing requests that aren't external webhooks."""
 
+    def __init__(self, app, **kwargs):
+        super().__init__(app, **kwargs)
+        self._base = get_settings().base_url.rstrip("/")
+
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.method in _MUTATION_METHODS:
             path = request.url.path
             if not any(path.startswith(p) for p in _CSRF_SKIP_PREFIXES):
                 origin = request.headers.get("origin", "")
                 referer = request.headers.get("referer", "")
-                settings = get_settings()
-                base = settings.base_url.rstrip("/")
-
-                allowed = origin.startswith(base) if origin else referer.startswith(base)
+                allowed = origin.startswith(self._base) if origin else referer.startswith(self._base)
                 if not allowed:
                     return Response("CSRF validation failed", status_code=403)
         return await call_next(request)
 
+
 _SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'none';"
+    ),
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
@@ -54,6 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         for header, value in _SECURITY_HEADERS.items():
             response.headers[header] = value
         return response
+
 
 # Prometheus metrics
 review_jobs_total = Counter("codesentinel_review_jobs_total", "Total review jobs", ["status"])
@@ -76,8 +91,8 @@ async def _telemetry_loop() -> None:
                     "https://telemetry.codesentinel.dev/ping",
                     json={"version": "0.1.0", "event": "daily_ping"},
                 )
-        except Exception:
-            pass  # telemetry failures are silent
+        except Exception as exc:
+            logger.debug("Telemetry ping failed (non-fatal): %s", exc)
 
 
 @asynccontextmanager
@@ -112,6 +127,11 @@ async def lifespan(app: FastAPI):
     logger.info("Worker stopped")
 
 
+class HealthResponse(BaseModel):
+    status: str
+    version: str
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
 
@@ -119,14 +139,18 @@ def create_app() -> FastAPI:
         title="CodeSentinel",
         description="Self-hosted AI code review platform",
         version="0.1.0",
-        docs_url="/api/docs",
+        docs_url="/api/docs" if settings.dev_mode else None,
         redoc_url=None,
         lifespan=lifespan,
     )
 
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(CSRFMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=86400 * 30, same_site="lax", https_only=False)
+    _https = settings.base_url.startswith("https://")
+    app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=86400 * 30, same_site="lax", https_only=_https)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -136,9 +160,9 @@ def create_app() -> FastAPI:
         async def _guarded_metrics(scope, receive, send):
             if scope["type"] == "http":
                 headers = dict(scope.get("headers", []))
-                auth = headers.get(b"authorization", b"").decode()
+                auth_header = headers.get(b"authorization", b"").decode()
                 expected = f"Bearer {settings.metrics_token}"
-                if auth != expected:
+                if auth_header != expected:
                     await send({"type": "http.response.start", "status": 401, "headers": [[b"content-length", b"0"]]})
                     await send({"type": "http.response.body", "body": b""})
                     return
@@ -154,9 +178,12 @@ def create_app() -> FastAPI:
     app.include_router(billing.router)
     app.include_router(webhooks.router)
 
-    @app.get("/health")
-    async def health():
-        return {"status": "ok", "version": "0.1.0"}
+    if settings.dev_mode:
+        app.add_api_route("/auth/dev-login", auth.dev_login, methods=["GET"])
+
+    @app.get("/health", response_model=HealthResponse)
+    def health():
+        return HealthResponse(status="ok", version="0.1.0")
 
     @app.exception_handler(auth._LoginRequired)
     async def login_required_handler(request: Request, exc: auth._LoginRequired):

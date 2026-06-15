@@ -2,50 +2,52 @@
 {% block title %}Repositories — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
+<div class="fade-up" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
   <div>
-    <h1 class="text-xl font-semibold text-white">Repositories</h1>
-    <p class="text-sm text-gray-400 mt-1">{{ repos | length }} of {{ org.repo_limit }} repos on {{ org.plan }} plan</p>
+    <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Repositories</h1>
+    <p class="text-muted" style="font-size:13px;margin:0;">
+      {{ repos | length }} of {{ org.repo_limit }} repos on {{ org.plan }} plan
+    </p>
   </div>
-  <button
-    onclick="document.getElementById('add-repo-modal').classList.remove('hidden')"
-    class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-  >
+  <button onclick="document.getElementById('add-repo-modal').classList.remove('hidden')"
+    class="btn btn-primary">
     + Add repository
   </button>
 </div>
 
 {% if error %}
-<div class="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">{{ error }}</div>
+<div class="banner-error fade-up" style="margin-bottom:16px;" role="alert">{{ error }}</div>
 {% endif %}
 
 {% if repos %}
-<div class="space-y-3">
+<div style="display:flex;flex-direction:column;gap:10px;">
   {% for repo in repos %}
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+  <div class="card card-tilt fade-up" style="padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;" data-tilt>
     <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-2">
-        <span class="text-white font-medium text-sm">{{ repo.repo_full_name }}</span>
-        <span class="text-xs px-1.5 py-0.5 bg-gray-800 rounded text-gray-400">{{ repo.git_host }}</span>
-        {% if not repo.active %}<span class="text-xs px-1.5 py-0.5 bg-red-500/10 rounded text-red-400">inactive</span>{% endif %}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:#f1f5f9;">{{ repo.repo_full_name }}</span>
+        <span class="badge badge-skipped" style="padding:1px 6px;font-size:10px;">{{ repo.git_host }}</span>
+        {% if not repo.active %}
+        <span class="badge badge-error" style="padding:1px 6px;font-size:10px;">inactive</span>
+        {% endif %}
       </div>
       {% if repo.base_url %}
-      <div class="text-xs text-gray-500 mt-0.5">{{ repo.base_url }}</div>
+      <div class="text-muted font-mono" style="font-size:11px;">{{ repo.base_url }}</div>
       {% endif %}
     </div>
 
-    <div class="text-xs text-gray-500 font-mono flex items-center gap-2">
-      <span>Webhook:</span>
-      <span id="wh-{{ repo.id }}" class="text-gray-300 select-all">{{ base_url }}/webhooks/{{ repo.id }}</span>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <span class="text-muted" style="font-size:11px;">Webhook:</span>
+      <code id="wh-{{ repo.id }}" style="font-size:10px;user-select:all;">{{ base_url }}/webhooks/{{ repo.id }}</code>
       <button
-        onclick="navigator.clipboard.writeText('{{ base_url }}/webhooks/{{ repo.id }}').then(() => { this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy', 1500) })"
-        class="text-gray-600 hover:text-blue-400 transition-colors px-1.5 py-0.5 border border-gray-700 rounded text-xs">
+        onclick="copyToClipboard(this, '{{ base_url }}/webhooks/{{ repo.id }}')"
+        class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">
         Copy
       </button>
     </div>
 
     <form method="post" action="/repos/{{ repo.id }}/delete">
-      <button type="submit" class="text-gray-600 hover:text-red-400 text-xs transition-colors"
+      <button type="submit" class="btn btn-danger"
         onclick="return confirm('Remove this repository?')">
         Remove
       </button>
@@ -54,35 +56,49 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-  <p class="text-sm text-gray-500">No repositories yet. Add one to start receiving reviews.</p>
+<div class="card fade-up anim-d1">
+  <div class="empty-state">
+    <p class="empty-state-text">No repositories yet. Add one to start receiving reviews.</p>
+  </div>
 </div>
 {% endif %}
 
-<!-- Webhook instructions -->
 {% if repos %}
-<div class="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-4">
-  <h3 class="text-sm font-medium text-white mb-2">Setting up webhooks</h3>
-  <div class="text-xs text-gray-400 space-y-1">
-    <p><strong class="text-gray-300">GitHub:</strong> Repo Settings → Webhooks → Add webhook → Payload URL: <code class="text-blue-400">{{ base_url }}/webhooks/YOUR_REPO_ID</code> · Content type: application/json · Secret: your webhook_secret (shown above) · Events: Pull requests</p>
-    <p><strong class="text-gray-300">GitLab:</strong> Settings → Webhooks → URL: same as above · Secret token: your webhook_secret · Trigger: Merge request events</p>
-    <p><strong class="text-gray-300">Gitea:</strong> Settings → Webhooks → Gitea · URL: same · Secret: your webhook_secret · Events: Pull Request</p>
+<div class="card fade-up anim-d5" style="padding:16px 18px;margin-top:20px;">
+  <h3 style="font-size:13px;font-weight:600;color:#f1f5f9;margin:0 0 10px;">Setting up webhooks</h3>
+  <div class="text-muted" style="font-size:12px;line-height:1.7;">
+    <p style="margin:0 0 6px;">
+      <strong style="color:#e2e8f0;">GitHub:</strong>
+      Repo Settings → Webhooks → Add webhook → Payload URL:
+      <code>{{ base_url }}/webhooks/YOUR_REPO_ID</code>
+      · Content type: <code>application/json</code> · Events: Pull requests
+    </p>
+    <p style="margin:0 0 6px;">
+      <strong style="color:#e2e8f0;">GitLab:</strong>
+      Settings → Webhooks → URL: same as above · Trigger: Merge request events
+    </p>
+    <p style="margin:0;">
+      <strong style="color:#e2e8f0;">Gitea:</strong>
+      Settings → Webhooks → Gitea · URL: same · Events: Pull Request
+    </p>
   </div>
 </div>
 {% endif %}
 
 <!-- Add repo modal -->
-<div id="add-repo-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-white">Add repository</h2>
-      <button onclick="document.getElementById('add-repo-modal').classList.add('hidden')" class="text-gray-500 hover:text-gray-300">✕</button>
+<div id="add-repo-modal" class="hidden fixed inset-0 flex items-center justify-center z-50"
+     style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
+  <div class="card" style="padding:24px;width:100%;max-width:420px;margin:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 style="font-size:16px;font-weight:700;margin:0;">Add repository</h2>
+      <button onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
+        class="btn btn-ghost" style="padding:4px 8px;font-size:16px;line-height:1;" aria-label="Close">✕</button>
     </div>
 
-    <form method="post" action="/repos" class="space-y-4">
+    <form method="post" action="/repos" style="display:flex;flex-direction:column;gap:14px;">
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Git host</label>
-        <select name="git_host" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <label class="input-label" for="git_host">Git host</label>
+        <select id="git_host" name="git_host" class="input">
           <option value="github">GitHub</option>
           <option value="gitlab">GitLab</option>
           <option value="gitea">Gitea</option>
@@ -90,34 +106,61 @@
       </div>
 
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Repository (owner/repo)</label>
-        <input type="text" name="repo_full_name" required placeholder="myorg/myrepo"
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <label class="input-label" for="repo_full_name">Repository (owner/repo)</label>
+        <input id="repo_full_name" type="text" name="repo_full_name" required
+          placeholder="myorg/myrepo" class="input" />
       </div>
 
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Base URL <span class="text-gray-600">(self-hosted only)</span></label>
-        <input type="url" name="base_url" placeholder="https://gitlab.company.com"
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <label class="input-label" for="base_url_input">
+          Base URL <span class="text-muted">(self-hosted only)</span>
+        </label>
+        <input id="base_url_input" type="url" name="base_url"
+          placeholder="https://gitlab.company.com" class="input" />
       </div>
 
       <div>
-        <label class="block text-sm text-gray-400 mb-1">Access token</label>
-        <input type="password" name="access_token" placeholder="ghp_... or glpat-..."
-          class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <p class="text-xs text-gray-500 mt-1">Needed to post review comments. Stored encrypted at rest.</p>
+        <label class="input-label" for="access_token">Access token</label>
+        <input id="access_token" type="password" name="access_token"
+          placeholder="ghp_... or glpat-..." class="input" autocomplete="new-password" />
+        <p class="text-muted" style="font-size:11px;margin-top:4px;">
+          Needed to post review comments. Stored encrypted at rest.
+        </p>
       </div>
 
-      <div class="flex gap-3 pt-2">
-        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">
-          Add repository
-        </button>
-        <button type="button" onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
-          class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
-          Cancel
-        </button>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Add repository</button>
+        <button type="button"
+          onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
+          class="btn btn-ghost">Cancel</button>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function copyToClipboard(btn, text) {
+  function markCopied() {
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(markCopied).catch(function() { fallbackCopy(btn, text); });
+  } else {
+    fallbackCopy(btn, text);
+  }
+}
+function fallbackCopy(btn, text) {
+  var el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+  document.body.appendChild(el);
+  el.select();
+  var ok = document.execCommand('copy');
+  document.body.removeChild(el);
+  if (ok) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); }
+}
+</script>
 {% endblock %}

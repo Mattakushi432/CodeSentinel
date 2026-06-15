@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -8,15 +7,15 @@ from app.models.organization import Organization
 from app.models.rule import Rule
 from app.models.user import User
 from app.routers.auth import require_org, require_user
+from app.templates_config import templates
 
 router = APIRouter(prefix="/rules", tags=["rules"])
-templates = Jinja2Templates(directory="app/templates")
 
 _ALLOWED_LANGUAGES = {"all", "python", "javascript", "go", "rust", "java", "typescript", "ruby", "php", "csharp"}
 
 
 @router.get("", response_class=HTMLResponse)
-async def list_rules(
+def list_rules(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -27,7 +26,7 @@ async def list_rules(
 
 
 @router.post("")
-async def add_rule(
+def add_rule(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -57,7 +56,7 @@ async def add_rule(
 
 
 @router.post("/{rule_id}/toggle")
-async def toggle_rule(
+def toggle_rule(
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
@@ -70,7 +69,7 @@ async def toggle_rule(
 
 
 @router.post("/{rule_id}/delete")
-async def delete_rule(
+def delete_rule(
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),

@@ -16,6 +16,7 @@ async def review_worker() -> None:
 
     while True:
         try:
+            job_id = None
             with SessionLocal() as db:
                 from app.models.review_job import ReviewJob
                 job = (
@@ -26,9 +27,9 @@ async def review_worker() -> None:
                 )
                 if job:
                     job_id = job.id
+                    job.status = JobStatus.processing  # atomic claim before releasing the session
+                    db.commit()
                     logger.info("Picked up job %d (PR #%d)", job_id, job.pr_number)
-                else:
-                    job_id = None
 
             if job_id is not None:
                 with SessionLocal() as db:

@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 async def send_magic_link(to_email: str, magic_url: str) -> None:
     settings = get_settings()
     if not settings.smtp_host:
-        logger.warning("SMTP not configured. Magic link for %s: %s", to_email, magic_url)
+        token_preview = magic_url.split("token=")[-1][:8] + "..."
+        logger.debug("SMTP not configured (dev). Magic link for %s (token: %s)", to_email, token_preview)
         return
 
     msg = MIMEMultipart("alternative")

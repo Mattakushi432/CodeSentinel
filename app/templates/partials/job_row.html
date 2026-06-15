@@ -1,46 +1,60 @@
 {% if job %}
-<span class="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0
-  {% if job.status == 'done' %}bg-green-400/10 text-green-400
-  {% elif job.status == 'pending' %}bg-yellow-400/10 text-yellow-400
-  {% elif job.status == 'processing' %}bg-blue-400/10 text-blue-400
-  {% elif job.status == 'error' %}bg-red-400/10 text-red-400
-  {% else %}bg-gray-400/10 text-gray-400{% endif %}">
-  {% if job.status == 'processing' %}
-  <span class="inline-block animate-pulse">●</span>
-  {% endif %}
+<span class="badge
+  {%- if job.status == 'done' %} badge-done
+  {%- elif job.status == 'pending' %} badge-pending
+  {%- elif job.status == 'processing' %} badge-processing
+  {%- elif job.status == 'error' %} badge-error
+  {%- else %} badge-skipped{%- endif %}">
+  {%- if job.status == 'processing' %}<span class="badge-spinner" aria-hidden="true"></span>
+  {%- elif job.status == 'done' %}<span class="badge-dot" aria-hidden="true"></span>
+  {%- elif job.status == 'error' %}<span class="badge-dot" aria-hidden="true"></span>
+  {%- endif %}
   {{ job.status }}
 </span>
 
 <div class="flex-1 min-w-0">
-  <div class="text-sm text-white truncate">
-    <a href="/reviews/{{ job.id }}" class="hover:text-blue-400">{{ job.pr_title or "PR #" ~ job.pr_number }}</a>
+  <div class="truncate" style="font-size:13px;color:#e2e8f0;font-weight:500;">
+    <a href="/reviews/{{ job.id }}" style="color:inherit;text-decoration:none;">
+      {{ job.pr_title or "PR #" ~ job.pr_number }}
+    </a>
     {% if job.pr_url %}
-    <a href="{{ job.pr_url }}" target="_blank" class="ml-2 text-xs text-gray-600 hover:text-gray-400">↗</a>
+    <a href="{{ job.pr_url }}" target="_blank" rel="noopener noreferrer"
+       class="text-muted" style="margin-left:6px;font-size:11px;">↗</a>
     {% endif %}
   </div>
-  <div class="text-xs text-gray-500">
+  <div class="text-muted" style="font-size:11px;margin-top:1px;">
     {{ job.repository.repo_full_name }} · PR #{{ job.pr_number }}
     {% if job.diff_lines %} · {{ job.diff_lines }} lines{% endif %}
   </div>
 </div>
 
 {% if job.review %}
-<div class="text-xs flex gap-3 flex-shrink-0">
-  {% if job.review.severity_high %}<span class="text-red-400">● {{ job.review.severity_high }} high</span>{% endif %}
-  {% if job.review.severity_medium %}<span class="text-yellow-400">● {{ job.review.severity_medium }} med</span>{% endif %}
-  {% if job.review.severity_low %}<span class="text-gray-500">{{ job.review.severity_low }} low</span>{% endif %}
+<div style="display:flex;gap:10px;align-items:center;flex-shrink:0;font-size:11px;">
+  {% if job.review.severity_high %}
+  <span class="sev-high" style="display:flex;align-items:center;gap:3px;">
+    <span class="sev-dot sev-dot-high" aria-hidden="true"></span>{{ job.review.severity_high }} high
+  </span>
+  {% endif %}
+  {% if job.review.severity_medium %}
+  <span class="sev-med" style="display:flex;align-items:center;gap:3px;">
+    <span class="sev-dot sev-dot-med" aria-hidden="true"></span>{{ job.review.severity_medium }} med
+  </span>
+  {% endif %}
+  {% if job.review.severity_low %}
+  <span class="text-muted">{{ job.review.severity_low }} low</span>
+  {% endif %}
   {% if not job.review.severity_high and not job.review.severity_medium and not job.review.severity_low %}
-  <span class="text-green-400">✓ clean</span>
+  <span class="text-green" style="font-size:11px;">✓ clean</span>
   {% endif %}
 </div>
 {% endif %}
 
 {% if job.error_msg %}
-<div class="text-xs text-red-400 max-w-xs truncate flex-shrink-0">{{ job.error_msg }}</div>
+<div class="text-red truncate" style="font-size:11px;max-width:180px;flex-shrink:0;">{{ job.error_msg }}</div>
 {% endif %}
 
-<div class="text-xs text-gray-500 flex-shrink-0">{{ job.created_at.strftime('%b %d %H:%M') }}</div>
+<div class="text-muted" style="font-size:11px;flex-shrink:0;">{{ job.created_at.strftime('%b %d %H:%M') }}</div>
 {% if job.duration_seconds %}
-<div class="text-xs text-gray-600 flex-shrink-0">{{ "%.0f"|format(job.duration_seconds) }}s</div>
+<div class="text-muted font-mono" style="font-size:10px;flex-shrink:0;">{{ "%.0f"|format(job.duration_seconds) }}s</div>
 {% endif %}
 {% endif %}

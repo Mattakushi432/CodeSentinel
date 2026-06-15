@@ -2,18 +2,17 @@ import re
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.database import get_db
 from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.user import User
 from app.routers.auth import require_org, require_user
+from app.templates_config import templates
 
 router = APIRouter(prefix="/repos", tags=["repos"])
-templates = Jinja2Templates(directory="app/templates")
 
 _REPO_NAME_RE = re.compile(r"^[\w.\-]+/[\w.\-]+$")
 _URL_RE = re.compile(r"^https?://")
@@ -35,14 +34,14 @@ def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, acce
 
 
 @router.get("", response_class=HTMLResponse)
-async def list_repos(
+def list_repos(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
     repos = db.query(Repository).filter(Repository.org_id == org.id).order_by(Repository.created_at.desc()).all()
-    settings = get_settings()
     return templates.TemplateResponse(
         "dashboard/repos.html",
         {"request": request, "user": user, "org": org, "repos": repos, "base_url": settings.base_url},
@@ -50,7 +49,7 @@ async def list_repos(
 
 
 @router.post("")
-async def add_repo(
+def add_repo(
     request: Request,
     user: User = Depends(require_user),
     org: Organization = Depends(require_org),
@@ -59,8 +58,8 @@ async def add_repo(
     repo_full_name: str = Form(...),
     base_url: str = Form(""),
     access_token: str = Form(""),
+    settings: Settings = Depends(get_settings),
 ):
-    settings = get_settings()
 
     repo_full_name = repo_full_name.strip()
     base_url = base_url.strip()
@@ -102,7 +101,7 @@ async def add_repo(
 
 
 @router.post("/{repo_id}/delete")
-async def delete_repo(
+def delete_repo(
     repo_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),

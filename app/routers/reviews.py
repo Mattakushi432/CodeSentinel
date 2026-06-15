@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -9,13 +8,13 @@ from app.models.repository import Repository
 from app.models.review_job import ReviewJob
 from app.models.user import User
 from app.routers.auth import get_user_org, require_org, require_user
+from app.templates_config import templates
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)
-async def list_reviews(
+def list_reviews(
     request: Request,
     user: User = Depends(require_user),
     org: Organization | None = Depends(get_user_org),
@@ -54,7 +53,7 @@ async def list_reviews(
 
 
 @router.get("/job/{job_id}/status", response_class=HTMLResponse)
-async def job_status(
+def job_status(
     job_id: int,
     request: Request,
     org: Organization = Depends(require_org),
@@ -66,7 +65,7 @@ async def job_status(
 
 
 @router.get("/{job_id}", response_class=HTMLResponse)
-async def review_detail(
+def review_detail(
     job_id: int,
     request: Request,
     user: User = Depends(require_user),
