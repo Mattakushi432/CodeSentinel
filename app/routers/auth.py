@@ -66,6 +66,22 @@ async def verify_magic_link(request: Request, token: str, db: Session = Depends(
     return RedirectResponse(url="/", status_code=302)
 
 
+@router.get("/dev-login")
+async def dev_login(request: Request, email: str = "zakr1995@gmail.com", db: Session = Depends(get_db)):
+    """Dev-only shortcut — bypasses email sending."""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(email=email, plan="free")
+        db.add(user)
+        db.flush()
+        org = Organization(name=email.split("@")[0], owner_id=user.id, plan="free")
+        db.add(org)
+        db.commit()
+        db.refresh(user)
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=302)
+
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
