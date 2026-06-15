@@ -109,3 +109,19 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     if not user:
         raise _LoginRequired()
     return user
+
+
+def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Returns the user's Organization, or None if not yet created."""
+    from app.models.organization import Organization
+    return db.query(Organization).filter(Organization.owner_id == user.id).first()
+
+
+def require_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Returns the user's Organization or raises 404."""
+    from fastapi import HTTPException
+    from app.models.organization import Organization
+    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return org

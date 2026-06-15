@@ -90,6 +90,24 @@ def _format_review_comment(issues: list[dict], model: str, pr_title: str) -> str
     return "\n".join(lines)
 
 
+def _categorize_error(exc: Exception) -> str:
+    name = type(exc).__name__
+    msg = str(exc)
+    if "timeout" in msg.lower() or "Timeout" in name:
+        return "LLM request timed out"
+    if "ConnectError" in name or "ConnectionError" in name:
+        return "Could not reach LLM or Git host — check network/config"
+    if "401" in msg or "403" in msg or "Unauthorized" in msg or "Forbidden" in msg:
+        return "Git host authentication failed — check access token"
+    if "404" in msg or "Not Found" in msg:
+        return "Repository or PR not found on Git host"
+    if "rate limit" in msg.lower() or "429" in msg:
+        return "Git host rate limit exceeded — retry later"
+    if "JSONDecodeError" in name or "json" in msg.lower():
+        return "LLM returned invalid JSON — review prompt or model"
+    return "Internal error — check server logs for details"
+
+
 async def run_review(job_id: int, db: Session) -> None:
     settings = get_settings()
 
@@ -182,6 +200,6 @@ async def run_review(job_id: int, db: Session) -> None:
     except Exception as exc:
         logger.exception("Job %d failed: %s", job_id, exc)
         job.status = JobStatus.error
-        job.error_msg = str(exc)[:500]
+        job.error_msg = _categorize_error(exc)
         job.finished_at = datetime.now(timezone.utc)
         db.commit()

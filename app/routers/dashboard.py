@@ -8,19 +8,19 @@ from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import JobStatus, ReviewJob
 from app.models.user import User
-from app.routers.auth import require_user
+from app.routers.auth import get_user_org, require_user
 
 router = APIRouter(tags=["dashboard"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-def _get_user_org(user: User, db: Session) -> Organization | None:
-    return db.query(Organization).filter(Organization.owner_id == user.id).first()
-
-
 @router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = _get_user_org(user, db)
+async def dashboard(
+    request: Request,
+    user: User = Depends(require_user),
+    org: Organization | None = Depends(get_user_org),
+    db: Session = Depends(get_db),
+):
     if not org:
         return templates.TemplateResponse("dashboard/index.html", {"request": request, "user": user, "org": None})
 

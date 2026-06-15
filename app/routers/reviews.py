@@ -8,7 +8,7 @@ from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import ReviewJob
 from app.models.user import User
-from app.routers.auth import require_user
+from app.routers.auth import get_user_org, require_org, require_user
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 templates = Jinja2Templates(directory="app/templates")
@@ -18,11 +18,11 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_reviews(
     request: Request,
     user: User = Depends(require_user),
+    org: Organization | None = Depends(get_user_org),
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
     repo_id: int | None = Query(None),
 ):
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     if not org:
         return templates.TemplateResponse("dashboard/reviews.html", {"request": request, "user": user, "jobs": [], "org": None})
 
@@ -57,11 +57,10 @@ async def list_reviews(
 async def job_status(
     job_id: int,
     request: Request,
-    user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
 ):
     """HTMX polling endpoint for live job status updates."""
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
     return templates.TemplateResponse("partials/job_row.html", {"request": request, "job": job})
 
@@ -71,12 +70,10 @@ async def review_detail(
     job_id: int,
     request: Request,
     user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
 ):
     """Detailed view of a single review job with all issues."""
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
-    if not org:
-        raise HTTPException(status_code=404)
     job = db.query(ReviewJob).join(Repository).filter(ReviewJob.id == job_id, Repository.org_id == org.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Review not found")

@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.rule import Rule
 from app.models.user import User
-from app.routers.auth import require_user
+from app.routers.auth import require_org, require_user
 
 router = APIRouter(prefix="/rules", tags=["rules"])
 templates = Jinja2Templates(directory="app/templates")
@@ -15,16 +15,13 @@ templates = Jinja2Templates(directory="app/templates")
 _ALLOWED_LANGUAGES = {"all", "python", "javascript", "go", "rust", "java", "typescript", "ruby", "php", "csharp"}
 
 
-def _get_org(user: User, db: Session) -> Organization:
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
-    if not org:
-        raise HTTPException(status_code=404)
-    return org
-
-
 @router.get("", response_class=HTMLResponse)
-async def list_rules(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = _get_org(user, db)
+async def list_rules(
+    request: Request,
+    user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
     rules = db.query(Rule).filter(Rule.org_id == org.id).order_by(Rule.created_at.desc()).all()
     return templates.TemplateResponse("dashboard/rules.html", {"request": request, "user": user, "org": org, "rules": rules})
 
@@ -33,13 +30,13 @@ async def list_rules(request: Request, user: User = Depends(require_user), db: S
 async def add_rule(
     request: Request,
     user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
     name: str = Form(...),
     description: str = Form(""),
     prompt_snippet: str = Form(""),
     language: str = Form("all"),
 ):
-    org = _get_org(user, db)
     name = name.strip()[:100]
     if not name:
         raise HTTPException(status_code=400, detail="Rule name is required")
@@ -60,8 +57,11 @@ async def add_rule(
 
 
 @router.post("/{rule_id}/toggle")
-async def toggle_rule(rule_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = _get_org(user, db)
+async def toggle_rule(
+    rule_id: int,
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
     rule = db.query(Rule).filter(Rule.id == rule_id, Rule.org_id == org.id).first()
     if rule:
         rule.enabled = not rule.enabled
@@ -70,8 +70,11 @@ async def toggle_rule(rule_id: int, user: User = Depends(require_user), db: Sess
 
 
 @router.post("/{rule_id}/delete")
-async def delete_rule(rule_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = _get_org(user, db)
+async def delete_rule(
+    rule_id: int,
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
     rule = db.query(Rule).filter(Rule.id == rule_id, Rule.org_id == org.id).first()
     if rule:
         db.delete(rule)
