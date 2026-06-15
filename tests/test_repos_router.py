@@ -44,6 +44,18 @@ def test_list_repos_unauthenticated_redirects(client: TestClient):
 # GET /repos — authenticated
 # ---------------------------------------------------------------------------
 
+def test_list_repos_no_org_returns_404(client: TestClient, db: Session):
+    email = f"noorg-{uuid.uuid4()}@example.com"
+    user = User(email=email, plan="free")
+    db.add(user)
+    db.commit()
+    token = generate_magic_token(email)
+    client.get(f"/auth/verify?token={token}", follow_redirects=False)
+
+    resp = client.get("/repos", follow_redirects=False)
+    assert resp.status_code == 404
+
+
 def test_list_repos_authenticated_returns_200(client: TestClient, db: Session):
     _setup_and_login(client, db)
     resp = client.get("/repos")

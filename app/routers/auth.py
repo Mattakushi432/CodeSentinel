@@ -1,6 +1,6 @@
 import re
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -66,6 +66,27 @@ async def verify_magic_link(request: Request, token: str, db: Session = Depends(
     return RedirectResponse(url="/", status_code=302)
 
 
+@router.get("/dev-login")
+async def dev_login(request: Request, email: str = "dev@localhost", db: Session = Depends(get_db)):
+    """Dev-only shortcut — only available when DEV_MODE=true."""
+    from fastapi import HTTPException
+
+    if not get_settings().dev_mode:
+        raise HTTPException(status_code=404)
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(email=email, plan="free")
+        db.add(user)
+        db.flush()
+        org = Organization(name=email.split("@")[0], owner_id=user.id, plan="free")
+        db.add(org)
+        db.commit()
+        db.refresh(user)
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=302)
+
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
@@ -79,9 +100,25 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | 
     return db.get(User, user_id)
 
 
+class _LoginRequired(Exception):
+    """Raised by require_user when no authenticated session exists."""
+
+
 def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if not user:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=302, headers={"Location": "/auth/login"})
+        raise _LoginRequired()
     return user
+
+
+def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Returns the user's Organization, or None if not yet created."""
+    return db.query(Organization).filter(Organization.owner_id == user.id).first()
+
+
+def require_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Returns the user's Organization or raises 404."""
+    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return org

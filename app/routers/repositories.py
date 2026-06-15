@@ -1,6 +1,6 @@
 import re
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.user import User
-from app.routers.auth import require_user
+from app.routers.auth import require_org, require_user
 
 router = APIRouter(prefix="/repos", tags=["repos"])
 templates = Jinja2Templates(directory="app/templates")
@@ -34,16 +34,13 @@ def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, acce
     return None
 
 
-def _get_org(user: User, db: Session) -> Organization:
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    return org
-
-
 @router.get("", response_class=HTMLResponse)
-async def list_repos(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = _get_org(user, db)
+async def list_repos(
+    request: Request,
+    user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
+    db: Session = Depends(get_db),
+):
     repos = db.query(Repository).filter(Repository.org_id == org.id).order_by(Repository.created_at.desc()).all()
     settings = get_settings()
     return templates.TemplateResponse(
@@ -56,13 +53,13 @@ async def list_repos(request: Request, user: User = Depends(require_user), db: S
 async def add_repo(
     request: Request,
     user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
     git_host: str = Form(...),
     repo_full_name: str = Form(...),
     base_url: str = Form(""),
     access_token: str = Form(""),
 ):
-    org = _get_org(user, db)
     settings = get_settings()
 
     repo_full_name = repo_full_name.strip()
@@ -107,10 +104,9 @@ async def add_repo(
 @router.post("/{repo_id}/delete")
 async def delete_repo(
     repo_id: int,
-    user: User = Depends(require_user),
+    org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
 ):
-    org = _get_org(user, db)
     repo = db.query(Repository).filter(Repository.id == repo_id, Repository.org_id == org.id).first()
     if repo:
         repo.active = False

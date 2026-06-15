@@ -3,7 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Gauge, Histogram, make_asgi_app
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -33,11 +33,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 settings = get_settings()
                 base = settings.base_url.rstrip("/")
 
-                # In test environments (TestClient) origin/referer are absent — skip check
-                if origin or referer:
-                    allowed = origin.startswith(base) if origin else referer.startswith(base)
-                    if not allowed:
-                        return Response("CSRF validation failed", status_code=403)
+                allowed = origin.startswith(base) if origin else referer.startswith(base)
+                if not allowed:
+                    return Response("CSRF validation failed", status_code=403)
         return await call_next(request)
 
 _SECURITY_HEADERS = {
@@ -131,7 +129,22 @@ def create_app() -> FastAPI:
     app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=86400 * 30, same_site="lax", https_only=False)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
-    app.mount("/metrics", make_asgi_app())
+
+    if settings.metrics_token:
+        _raw_metrics = make_asgi_app()
+
+        async def _guarded_metrics(scope, receive, send):
+            if scope["type"] == "http":
+                headers = dict(scope.get("headers", []))
+                auth = headers.get(b"authorization", b"").decode()
+                expected = f"Bearer {settings.metrics_token}"
+                if auth != expected:
+                    await send({"type": "http.response.start", "status": 401, "headers": [[b"content-length", b"0"]]})
+                    await send({"type": "http.response.body", "body": b""})
+                    return
+            await _raw_metrics(scope, receive, send)
+
+        app.mount("/metrics", _guarded_metrics)
 
     app.include_router(auth.router)
     app.include_router(dashboard.router)
@@ -145,10 +158,9 @@ def create_app() -> FastAPI:
     async def health():
         return {"status": "ok", "version": "0.1.0"}
 
-    @app.exception_handler(302)
-    async def redirect_handler(request: Request, exc):
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse(url=exc.headers["Location"], status_code=302)
+    @app.exception_handler(auth._LoginRequired)
+    async def login_required_handler(request: Request, exc: auth._LoginRequired):
+        return RedirectResponse(url="/auth/login", status_code=302)
 
     return app
 

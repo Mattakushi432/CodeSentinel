@@ -138,7 +138,7 @@ async def test_run_review_llm_error(repo_with_job):
 
     db.refresh(job)
     assert job.status == JobStatus.error
-    assert "Ollama timeout" in job.error_msg
+    assert "LLM request timed out" in job.error_msg
 
 
 async def test_run_review_skips_already_processing(repo_with_job):

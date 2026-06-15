@@ -1,6 +1,9 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_WEAK_SECRET_KEYS = {"", "change-me-in-production"}
 
 
 class Settings(BaseSettings):
@@ -8,6 +11,15 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/codesentinel.db"
     secret_key: str = "change-me-in-production"
+
+    @model_validator(mode="after")
+    def _reject_weak_secret_key(self) -> "Settings":
+        if self.secret_key in _WEAK_SECRET_KEYS:
+            raise ValueError(
+                "SECRET_KEY must not be the default placeholder. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return self
     base_url: str = "http://localhost:8000"
 
     llm_provider: str = "ollama"
@@ -38,6 +50,12 @@ class Settings(BaseSettings):
 
     # Opt-in anonymous telemetry ping (set to "true" to enable)
     telemetry_enabled: bool = False
+
+    # Set to true only in local development — enables /auth/dev-login
+    dev_mode: bool = False
+
+    # Bearer token required to scrape /metrics. Leave empty to disable the endpoint.
+    metrics_token: str = ""
 
     llm_retry_attempts: int = 3
     llm_retry_backoff: float = 2.0
