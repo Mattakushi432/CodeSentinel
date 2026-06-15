@@ -40,7 +40,7 @@
       <span class="text-muted" style="font-size:11px;">Webhook:</span>
       <code id="wh-{{ repo.id }}" style="font-size:10px;user-select:all;">{{ base_url }}/webhooks/{{ repo.id }}</code>
       <button
-        onclick="navigator.clipboard.writeText('{{ base_url }}/webhooks/{{ repo.id }}').then(function(){ var b=this; b.textContent='Copied!'; setTimeout(function(){ b.textContent='Copy'; }, 1500); }.bind(this))"
+        onclick="copyToClipboard(this, '{{ base_url }}/webhooks/{{ repo.id }}')"
         class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">
         Copy
       </button>
@@ -137,4 +137,30 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+function copyToClipboard(btn, text) {
+  function markCopied() {
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(markCopied).catch(function() { fallbackCopy(btn, text); });
+  } else {
+    fallbackCopy(btn, text);
+  }
+}
+function fallbackCopy(btn, text) {
+  var el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+  document.body.appendChild(el);
+  el.select();
+  var ok = document.execCommand('copy');
+  document.body.removeChild(el);
+  if (ok) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); }
+}
+</script>
 {% endblock %}
