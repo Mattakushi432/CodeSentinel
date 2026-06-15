@@ -1,0 +1,411 @@
+# Instincts generated from https://github.com/Mattakushi432/CodeSentinel
+# Generated: 2026-06-15T23:02:30.624Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: CodeSentinel-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, feat
+
+## Evidence
+
+- 5 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat: 3D animated dark-luxury frontend redesign, fix: security hardening — magic link replay, rate limiting, event loop blocking
+
+---
+id: CodeSentinel-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Commit Length
+
+## Action
+
+Write moderate-length commit messages (~71 characters)
+
+## Evidence
+
+- Average commit message length: 71 chars
+- Based on 5 commits
+
+---
+id: CodeSentinel-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: CodeSentinel-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: CodeSentinel-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: CodeSentinel-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: CodeSentinel-workflow-multi-route-backend-change-with-tests
+trigger: "when doing multi route backend change with tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Workflow Multi Route Backend Change With Tests
+
+## Action
+
+Follow the multi-route-backend-change-with-tests workflow:
+1. Edit multiple files in app/routers/ (e.g., auth.py, billing.py, repositories.py, reviews.py, rules.py, webhooks.py) to implement the change.
+2. Update shared backend logic or middleware (e.g., app/main.py, app/services/).
+3. Update or add Pydantic models or database logic if needed (e.g., app/models/, app/database.py).
+4. Update or add tests in tests/ (e.g., tests/conftest.py, tests/test_auth_router.py) to cover new logic or edge cases.
+5. Update requirements.txt if new dependencies are introduced.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: app/routers/auth.py, app/routers/billing.py, app/routers/dashboard.py
+
+---
+id: CodeSentinel-workflow-frontend-template-and-css-feature
+trigger: "when doing frontend template and css feature"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Mattakushi432/CodeSentinel
+---
+
+# CodeSentinel Workflow Frontend Template And Css Feature
+
+## Action
+
+Follow the frontend-template-and-css-feature workflow:
+1. Edit or add multiple HTML template files in app/templates/ (e.g., login, dashboard, reviews, partials).
+2. Update shared CSS (e.g., app/static/css/main.css) to implement new styles or animations.
+3. Optionally update or add JavaScript for interactive effects.
+4. Test changes across all affected pages for consistency and accessibility.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: app/templates/auth/login.html, app/templates/auth/magic_link_sent.html, app/templates/base.html
+
+---
+id: codesentinel-instinct-file-naming-camelcase
+trigger: "When creating or renaming a Python file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct File Naming Camelcase
+
+## Action
+
+Use camelCase for the file name
+
+## Evidence
+
+- Pattern in namingConventions.files: camelCase
+
+---
+id: codesentinel-instinct-function-naming-camelcase
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Function Naming Camelcase
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions: camelCase
+
+---
+id: codesentinel-instinct-class-naming-pascalcase
+trigger: "When defining a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Class Naming Pascalcase
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes: PascalCase
+
+---
+id: codesentinel-instinct-constant-naming-screaming-snake-case
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Constant Naming Screaming Snake Case
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for the constant name
+
+## Evidence
+
+- Pattern in namingConventions.constants: SCREAMING_SNAKE_CASE
+
+---
+id: codesentinel-instinct-imports-relative
+trigger: "When importing modules within the package"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Imports Relative
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in importStyle: relative
+
+---
+id: codesentinel-instinct-exports-named
+trigger: "When exporting functions, classes, or variables"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Exports Named
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle: named
+
+---
+id: codesentinel-instinct-test-location-separate
+trigger: "When adding or updating tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Test Location Separate
+
+## Action
+
+Place test files in the separate 'tests' directory
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: separate
+- Example: tests/conftest.py, tests/test_auth_router.py
+
+---
+id: codesentinel-instinct-test-update-on-backend-change
+trigger: "When making backend changes to route handlers or shared logic"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Test Update On Backend Change
+
+## Action
+
+Update or add corresponding tests in the tests/ directory to cover new logic or edge cases
+
+## Evidence
+
+- Workflow: multi-route-backend-change-with-tests
+- Example: tests/conftest.py, tests/test_auth_router.py
+
+---
+id: codesentinel-instinct-git-conventional-commits
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Git Conventional Commits
+
+## Action
+
+Use the conventional commit format with a prefix (e.g., 'fix:', 'feat:') followed by a concise description
+
+## Evidence
+
+- Pattern in commits.type: conventional
+- Examples: 'feat: 3D animated dark-luxury frontend redesign', 'fix: update repository URL in README for cloning instructions'
+
+---
+id: codesentinel-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise, around 71 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength: 71
+
+---
+id: codesentinel-instinct-multi-route-backend-change
+trigger: "When implementing a cross-cutting backend feature or fix that affects several API endpoints and requires test coverage"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Multi Route Backend Change
+
+## Action
+
+Edit multiple app/routers/* files, update shared backend logic, update/add models or database logic, update/add tests in tests/, and update requirements.txt if needed
+
+## Evidence
+
+- Workflow: multi-route-backend-change-with-tests
+- Example files: app/routers/auth.py, app/services/, tests/test_auth_router.py, requirements.txt
+
+---
+id: codesentinel-instinct-frontend-template-and-css-feature
+trigger: "When introducing a new frontend feature, redesign, or animation affecting several user-facing pages"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: Mattakushi432/CodeSentinel
+---
+
+# Codesentinel Instinct Frontend Template And Css Feature
+
+## Action
+
+Edit/add multiple HTML templates in app/templates/, update shared CSS in app/static/css/main.css, optionally update/add JavaScript, and test changes for consistency and accessibility
+
+## Evidence
+
+- Workflow: frontend-template-and-css-feature
+- Example files: app/templates/auth/login.html, app/static/css/main.css
+

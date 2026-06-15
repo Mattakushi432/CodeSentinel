@@ -1,0 +1,6 @@
+interface:
+  display_name: "CodeSentinel"
+  short_description: "Repo-specific patterns and workflows for CodeSentinel"
+  default_prompt: "Use the CodeSentinel repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
