@@ -9,7 +9,7 @@
 
 {% if org %}
 <!-- Stat cards -->
-<div class="grid grid-cols-2 md:grid-cols-3 gap-4" style="margin-bottom:24px;">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
   <div class="card card-tilt stat-card fade-up anim-d1" data-tilt>
     <div class="stat-value text-blue" data-count-up>{{ repo_count }}</div>
     <div class="stat-label">Active Repos</div>
