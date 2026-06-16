@@ -1,4 +1,6 @@
+import ipaddress
 import re
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -17,6 +19,30 @@ router = APIRouter(prefix="/repos", tags=["repos"])
 _REPO_NAME_RE = re.compile(r"^[\w.\-]+/[\w.\-]+$")
 _URL_RE = re.compile(r"^https?://")
 
+_BLOCKED_HOSTNAMES = frozenset({
+    "localhost",
+    "metadata.google.internal",
+})
+
+
+def _is_ssrf_url(url: str) -> bool:
+    """Returns True if the URL targets a private/loopback/link-local address."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return True
+        if hostname.lower() in _BLOCKED_HOSTNAMES:
+            return True
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast
+        except ValueError:
+            pass
+        return False
+    except Exception:
+        return True
+
 
 def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, access_token: str) -> str | None:
     """Return error string or None if valid."""
@@ -26,8 +52,11 @@ def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, acce
         return "Repository name must be 1–255 characters"
     if not _REPO_NAME_RE.match(repo_full_name):
         return "Repository must be in owner/repo format (alphanumeric, dashes, dots)"
-    if base_url and (len(base_url) > 500 or not _URL_RE.match(base_url)):
-        return "Base URL must start with http:// or https:// and be under 500 chars"
+    if base_url:
+        if len(base_url) > 500 or not _URL_RE.match(base_url):
+            return "Base URL must start with http:// or https:// and be under 500 chars"
+        if _is_ssrf_url(base_url):
+            return "Base URL must not point to a private or internal network address"
     if access_token and len(access_token) > 500:
         return "Access token too long (max 500 chars)"
     return None
@@ -43,8 +72,9 @@ def list_repos(
 ):
     repos = db.query(Repository).filter(Repository.org_id == org.id).order_by(Repository.created_at.desc()).all()
     return templates.TemplateResponse(
+        request,
         "dashboard/repos.html",
-        {"request": request, "user": user, "org": org, "repos": repos, "base_url": settings.base_url},
+        {"user": user, "org": org, "repos": repos, "base_url": settings.base_url},
     )
 
 
@@ -69,8 +99,9 @@ def add_repo(
     if err:
         repos = db.query(Repository).filter(Repository.org_id == org.id).all()
         return templates.TemplateResponse(
+            request,
             "dashboard/repos.html",
-            {"request": request, "user": user, "org": org, "repos": repos, "base_url": settings.base_url, "error": err},
+            {"user": user, "org": org, "repos": repos, "base_url": settings.base_url, "error": err},
         )
 
     repo = Repository(

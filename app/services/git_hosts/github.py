@@ -1,8 +1,14 @@
 import httpx
+from urllib.parse import quote
 
 from app.services.git_hosts.base import DiffResult, GitHostClient, PRInfo
 
 _API = "https://api.github.com"
+
+
+def _encode_repo(repo_full_name: str) -> str:
+    owner, repo = repo_full_name.split("/", 1)
+    return f"{quote(owner, safe='')}/{quote(repo, safe='')}"
 
 
 class GitHubProvider(GitHostClient):
@@ -16,9 +22,10 @@ class GitHubProvider(GitHostClient):
         return h
 
     async def get_pr_info(self, repo_full_name: str, pr_number: int) -> PRInfo:
+        encoded = _encode_repo(repo_full_name)
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
-                f"{_API}/repos/{repo_full_name}/pulls/{pr_number}",
+                f"{_API}/repos/{encoded}/pulls/{pr_number}",
                 headers=self._headers(),
             )
             resp.raise_for_status()
@@ -35,10 +42,11 @@ class GitHubProvider(GitHostClient):
         )
 
     async def get_pr_diff(self, repo_full_name: str, pr_number: int) -> DiffResult:
+        encoded = _encode_repo(repo_full_name)
         headers = {**self._headers(), "Accept": "application/vnd.github.v3.diff"}
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
-                f"{_API}/repos/{repo_full_name}/pulls/{pr_number}",
+                f"{_API}/repos/{encoded}/pulls/{pr_number}",
                 headers=headers,
             )
             resp.raise_for_status()
@@ -57,9 +65,10 @@ class GitHubProvider(GitHostClient):
         return DiffResult(raw_diff=raw_diff, files_changed=files, lines_added=added, lines_removed=removed)
 
     async def post_review_comment(self, repo_full_name: str, pr_number: int, body: str) -> str:
+        encoded = _encode_repo(repo_full_name)
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
-                f"{_API}/repos/{repo_full_name}/issues/{pr_number}/comments",
+                f"{_API}/repos/{encoded}/issues/{pr_number}/comments",
                 headers=self._headers(),
                 json={"body": body},
             )

@@ -27,12 +27,22 @@ class Organization(Base):
     rules: Mapped[list[Rule]] = relationship(back_populates="organization", lazy="select")
     api_keys: Mapped[list[ApiKey]] = relationship(back_populates="organization", lazy="select")
 
-    def increment_monthly_reviews(self) -> None:
+    def increment_monthly_reviews(self, db) -> None:
+        from sqlalchemy import text
         month_key = datetime.now(timezone.utc).strftime("%Y-%m")
         if self.reviews_month_key != month_key:
-            self.reviews_this_month = 0
+            db.execute(
+                text("UPDATE organizations SET reviews_this_month = 1, reviews_month_key = :mk WHERE id = :id"),
+                {"mk": month_key, "id": self.id},
+            )
+            self.reviews_this_month = 1
             self.reviews_month_key = month_key
-        self.reviews_this_month += 1
+        else:
+            db.execute(
+                text("UPDATE organizations SET reviews_this_month = reviews_this_month + 1 WHERE id = :id"),
+                {"id": self.id},
+            )
+            self.reviews_this_month += 1
 
 
 from app.models.api_key import ApiKey  # noqa: E402, F401

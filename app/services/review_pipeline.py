@@ -11,6 +11,7 @@ from app.models.review import Review
 from app.models.review_job import JobStatus, ReviewJob
 from app.models.rule import Rule
 from app.services.git_hosts import get_git_host_client
+from app.services.git_hosts.base import DiffResult
 from app.services.llm import get_llm_client
 from app.services.prompt_builder import build_system_prompt, build_user_prompt, chunk_diff
 
@@ -51,11 +52,16 @@ def _parse_issues(raw_text: str) -> list[dict]:
         return []
 
 
+def _escape_md(text: str) -> str:
+    """Escape LLM-generated text to prevent Markdown injection in PR comments."""
+    return text.replace("[", "\\[").replace("]", "\\]").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _format_review_comment(issues: list[dict], model: str, pr_title: str) -> str:
     if not issues:
         return (
             "## CodeSentinel Review\n\n"
-            f"✅ No issues found in this PR.\n\n"
+            "No issues found in this PR.\n\n"
             f"<sub>Reviewed by {model}</sub>"
         )
 
@@ -66,24 +72,24 @@ def _format_review_comment(issues: list[dict], model: str, pr_title: str) -> str
     lines = ["## CodeSentinel Review\n"]
 
     if high:
-        lines.append(f"### 🔴 High ({len(high)})\n")
+        lines.append(f"### High ({len(high)})\n")
         for i in high:
-            loc = f"`{i['file']}`" + (f" line {i['line']}" if i.get("line") else "")
-            lines.append(f"- **{loc}**: {i['message']}")
+            loc = f"`{_escape_md(i['file'])}`" + (f" line {i['line']}" if i.get("line") else "")
+            lines.append(f"- **{loc}**: {_escape_md(i['message'])}")
         lines.append("")
 
     if medium:
-        lines.append(f"### 🟡 Medium ({len(medium)})\n")
+        lines.append(f"### Medium ({len(medium)})\n")
         for i in medium:
-            loc = f"`{i['file']}`" + (f" line {i['line']}" if i.get("line") else "")
-            lines.append(f"- **{loc}**: {i['message']}")
+            loc = f"`{_escape_md(i['file'])}`" + (f" line {i['line']}" if i.get("line") else "")
+            lines.append(f"- **{loc}**: {_escape_md(i['message'])}")
         lines.append("")
 
     if low:
-        lines.append(f"### 🔵 Low ({len(low)})\n")
+        lines.append(f"### Low ({len(low)})\n")
         for i in low:
-            loc = f"`{i['file']}`" + (f" line {i['line']}" if i.get("line") else "")
-            lines.append(f"- **{loc}**: {i['message']}")
+            loc = f"`{_escape_md(i['file'])}`" + (f" line {i['line']}" if i.get("line") else "")
+            lines.append(f"- **{loc}**: {_escape_md(i['message'])}")
         lines.append("")
 
     lines.append(f"<sub>Reviewed by {model} | CodeSentinel</sub>")
@@ -129,9 +135,9 @@ async def run_review(job_id: int, db: Session) -> None:
         diff = await git_client.get_pr_diff(repo.repo_full_name, job.pr_number)
 
         job.diff_lines = diff.total_lines
-        job.pr_title = pr_info.title
-        job.pr_url = pr_info.url
-        job.pr_author = pr_info.author
+        job.pr_title = (pr_info.title or "")[:500]
+        job.pr_url = (pr_info.url or "")[:500]
+        job.pr_author = (pr_info.author or "")[:255]
 
         if diff.total_lines == 0:
             job.status = JobStatus.skipped
@@ -156,7 +162,6 @@ async def run_review(job_id: int, db: Session) -> None:
             chunks = [diff.raw_diff]
 
         for chunk in chunks:
-            from app.services.git_hosts.base import DiffResult
             chunk_diff_obj = DiffResult(raw_diff=chunk, files_changed=[], lines_added=0, lines_removed=0)
             user_prompt = build_user_prompt(chunk_diff_obj, pr_info.title, pr_info.body)
             llm_resp = await llm_client.generate(system_prompt, user_prompt)
@@ -184,7 +189,7 @@ async def run_review(job_id: int, db: Session) -> None:
         )
         db.add(review)
 
-        org.increment_monthly_reviews()
+        org.increment_monthly_reviews(db)
         job.status = JobStatus.done
         job.finished_at = datetime.now(timezone.utc)
         db.commit()

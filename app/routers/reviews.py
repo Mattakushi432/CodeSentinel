@@ -23,7 +23,7 @@ def list_reviews(
     repo_id: int | None = Query(None),
 ):
     if not org:
-        return templates.TemplateResponse("dashboard/reviews.html", {"request": request, "user": user, "jobs": [], "org": None})
+        return templates.TemplateResponse(request, "dashboard/reviews.html", {"user": user, "jobs": [], "org": None})
 
     repos = db.query(Repository).filter(Repository.org_id == org.id).all()
     query = db.query(ReviewJob).join(Repository).filter(Repository.org_id == org.id)
@@ -44,9 +44,9 @@ def list_reviews(
     total_pages = max(1, (total + per_page - 1) // per_page)
     page_range = range(max(1, page - 3), min(total_pages + 1, page + 4))
     return templates.TemplateResponse(
+        request,
         "dashboard/reviews.html",
         {
-            "request": request,
             "user": user,
             "org": org,
             "jobs": jobs,
@@ -76,7 +76,9 @@ def job_status(
         .filter(ReviewJob.id == job_id, Repository.org_id == org.id)
         .first()
     )
-    return templates.TemplateResponse("partials/job_row.html", {"request": request, "job": job})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return templates.TemplateResponse(request, "partials/job_row.html", {"job": job})
 
 
 @router.get("/{job_id}", response_class=HTMLResponse)
@@ -98,6 +100,7 @@ def review_detail(
     if not job:
         raise HTTPException(status_code=404, detail="Review not found")
     return templates.TemplateResponse(
+        request,
         "dashboard/review_detail.html",
-        {"request": request, "user": user, "org": org, "job": job},
+        {"user": user, "org": org, "job": job},
     )

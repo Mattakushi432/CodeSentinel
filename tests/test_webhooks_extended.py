@@ -119,6 +119,7 @@ class TestGiteaWebhook:
             content=payload,
             headers={
                 "X-Gitea-Signature": sig,
+                "X-Gitea-Event": "pull_request",
                 "Content-Type": "application/json",
             },
         )

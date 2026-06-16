@@ -21,7 +21,7 @@ def dashboard(
     db: Session = Depends(get_db),
 ):
     if not org:
-        return templates.TemplateResponse("dashboard/index.html", {"request": request, "user": user, "org": None})
+        return templates.TemplateResponse(request, "dashboard/index.html", {"user": user, "org": None})
 
     repo_count = db.query(Repository).filter(Repository.org_id == org.id, Repository.active == True).count()  # noqa: E712
     pending_count = (
@@ -47,9 +47,9 @@ def dashboard(
     )
 
     return templates.TemplateResponse(
+        request,
         "dashboard/index.html",
         {
-            "request": request,
             "user": user,
             "org": org,
             "repo_count": repo_count,

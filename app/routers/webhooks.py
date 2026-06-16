@@ -56,6 +56,9 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
     payload_bytes = await request.body()
     secret = repo.webhook_secret
 
+    if not secret:
+        raise HTTPException(status_code=500, detail="Webhook not configured: missing secret")
+
     if repo.git_host == "github":
         sig = request.headers.get("X-Hub-Signature-256")
         if not _verify_github_signature(payload_bytes, secret, sig):
@@ -107,6 +110,10 @@ async def receive_webhook(repo_id: int, request: Request, db: Session = Depends(
         sig = request.headers.get("X-Gitea-Signature")
         if not _verify_gitea_signature(payload_bytes, secret, f"sha256={sig}" if sig else None):
             raise HTTPException(status_code=401, detail="Invalid signature")
+
+        event_type = request.headers.get("X-Gitea-Event", "")
+        if event_type != "pull_request":
+            return WebhookResponse(status="ignored", event=event_type)
 
         try:
             data = json.loads(payload_bytes)

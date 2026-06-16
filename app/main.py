@@ -23,7 +23,7 @@ from app.worker.tasks import review_worker
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-_CSRF_SKIP_PREFIXES = ("/webhooks/", "/metrics", "/health", "/static/")
+_CSRF_SKIP_PREFIXES = ("/webhooks/", "/metrics", "/health")
 _MUTATION_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -90,21 +90,6 @@ llm_inference_seconds = Histogram(
 queue_depth = Gauge("codesentinel_queue_depth", "Pending review jobs in queue")
 
 
-async def _telemetry_loop() -> None:
-    """Opt-in anonymous telemetry: sends a periodic ping with no personal data."""
-    import httpx
-    while True:
-        try:
-            await asyncio.sleep(86400)  # once per day
-            async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(
-                    "https://telemetry.codesentinel.dev/ping",
-                    json={"version": "0.1.0", "event": "daily_ping"},
-                )
-        except Exception as exc:
-            logger.debug("Telemetry ping failed (non-fatal): %s", exc)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
@@ -113,26 +98,13 @@ async def lifespan(app: FastAPI):
     worker_task = asyncio.create_task(review_worker())
     logger.info("Background review worker started")
 
-    settings = get_settings()
-    telemetry_task = None
-    if settings.telemetry_enabled:
-        telemetry_task = asyncio.create_task(_telemetry_loop())
-        logger.info("Opt-in telemetry enabled")
-
-    yield
+    yield  # app runs
 
     worker_task.cancel()
     try:
         await worker_task
     except asyncio.CancelledError:
         pass
-
-    if telemetry_task:
-        telemetry_task.cancel()
-        try:
-            await telemetry_task
-        except asyncio.CancelledError:
-            pass
 
     logger.info("Worker stopped")
 

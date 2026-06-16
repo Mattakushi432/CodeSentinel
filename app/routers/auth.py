@@ -15,12 +15,14 @@ from app.templates_config import templates
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+_ORG_NAME_CLEAN = re.compile(r"[^\w\-]")
 _MIN_PASSWORD_LEN = 8
+_MAX_PASSWORD_BYTES = 72
 
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("auth/login.html", {"request": request})
+    return templates.TemplateResponse(request, "auth/login.html")
 
 
 @router.post("/login")
@@ -34,15 +36,17 @@ async def login_submit(
     email = email.strip().lower()[:254]
     if not _EMAIL_RE.match(email):
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
-            {"request": request, "error": "Please enter a valid email address."},
+            {"error": "Please enter a valid email address."},
         )
 
     user = db.query(User).filter(User.email == email).first()
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
-            {"request": request, "error": "Invalid email or password."},
+            {"error": "Invalid email or password."},
         )
 
     request.session["user_id"] = user.id
@@ -51,7 +55,7 @@ async def login_submit(
 
 @router.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
-    return templates.TemplateResponse("auth/register.html", {"request": request})
+    return templates.TemplateResponse(request, "auth/register.html")
 
 
 @router.post("/register")
@@ -67,18 +71,27 @@ async def register_submit(
 
     if not _EMAIL_RE.match(email):
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
-            {"request": request, "error": "Please enter a valid email address."},
+            {"error": "Please enter a valid email address."},
         )
     if len(password) < _MIN_PASSWORD_LEN:
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
-            {"request": request, "error": f"Password must be at least {_MIN_PASSWORD_LEN} characters."},
+            {"error": f"Password must be at least {_MIN_PASSWORD_LEN} characters."},
+        )
+    if len(password.encode()) > _MAX_PASSWORD_BYTES:
+        return templates.TemplateResponse(
+            request,
+            "auth/register.html",
+            {"error": f"Password must not exceed {_MAX_PASSWORD_BYTES} characters."},
         )
     if password != password_confirm:
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
-            {"request": request, "error": "Passwords do not match."},
+            {"error": "Passwords do not match."},
         )
 
     user = User(email=email, password_hash=hash_password(password))
@@ -88,11 +101,13 @@ async def register_submit(
     except IntegrityError:
         db.rollback()
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
-            {"request": request, "error": "An account with this email already exists."},
+            {"error": "An account with this email already exists."},
         )
 
-    org = Organization(name=email.split("@")[0], owner_id=user.id)
+    org_name = _ORG_NAME_CLEAN.sub("", email.split("@")[0])[:50] or "user"
+    org = Organization(name=org_name, owner_id=user.id)
     db.add(org)
     db.commit()
     db.refresh(user)
@@ -125,12 +140,11 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
-def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
+def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)) -> Organization | None:
     return db.query(Organization).filter(Organization.owner_id == user.id).first()
 
 
-def require_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
+def require_org(org: Organization | None = Depends(get_user_org)) -> Organization:
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     return org

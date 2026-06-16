@@ -22,7 +22,7 @@ def list_rules(
     db: Session = Depends(get_db),
 ):
     rules = db.query(Rule).filter(Rule.org_id == org.id).order_by(Rule.created_at.desc()).all()
-    return templates.TemplateResponse("dashboard/rules.html", {"request": request, "user": user, "org": org, "rules": rules})
+    return templates.TemplateResponse(request, "dashboard/rules.html", {"user": user, "org": org, "rules": rules})
 
 
 @router.post("")

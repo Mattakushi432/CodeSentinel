@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from app.config import get_settings
 from app.database import SessionLocal
@@ -20,8 +21,8 @@ async def review_worker() -> None:
         )
 
     while True:
+        job_id = None
         try:
-            job_id = None
             with SessionLocal() as db:
                 from app.models.review_job import ReviewJob
                 job = (
@@ -32,8 +33,6 @@ async def review_worker() -> None:
                 )
                 if job:
                     job_id = job.id
-                    job.status = JobStatus.processing  # atomic claim before releasing the session
-                    db.commit()
                     logger.info("Picked up job %d (PR #%d)", job_id, job.pr_number)
 
             if job_id is not None:
@@ -47,4 +46,16 @@ async def review_worker() -> None:
             break
         except Exception as exc:
             logger.exception("Worker loop error: %s", exc)
+            if job_id is not None:
+                try:
+                    with SessionLocal() as recovery_db:
+                        from app.models.review_job import ReviewJob
+                        stuck = recovery_db.get(ReviewJob, job_id)
+                        if stuck and stuck.status == JobStatus.processing:
+                            stuck.status = JobStatus.error
+                            stuck.error_msg = "Worker error — see server logs"
+                            stuck.finished_at = datetime.now(timezone.utc)
+                            recovery_db.commit()
+                except Exception as recovery_exc:
+                    logger.error("Failed to mark job %d as error: %s", job_id, recovery_exc)
             await asyncio.sleep(5)

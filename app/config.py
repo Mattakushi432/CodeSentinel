@@ -40,10 +40,7 @@ class Settings(BaseSettings):
     # Fernet key for encrypting access tokens at rest (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     encryption_key: str = ""
 
-    # Opt-in anonymous telemetry ping (set to "true" to enable)
-    telemetry_enabled: bool = False
-
-    # Set to true only in local development — enables /auth/dev-login
+    # Set to true only in local development — enables /api/docs
     dev_mode: bool = False
 
     # Bearer token required to scrape /metrics. Leave empty to disable the endpoint.
