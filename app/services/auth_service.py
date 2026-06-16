@@ -1,21 +1,9 @@
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-
-from app.config import get_settings
+import bcrypt
 
 
-def _serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(get_settings().secret_key)
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
-def generate_magic_token(email: str) -> str:
-    return _serializer().dumps(email, salt="magic-link")
-
-
-def verify_magic_token(token: str) -> str | None:
-    """Returns email if valid, None if expired/invalid."""
-    settings = get_settings()
-    try:
-        email = _serializer().loads(token, salt="magic-link", max_age=settings.magic_link_expiry)
-        return email
-    except (SignatureExpired, BadSignature):
-        return None
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())

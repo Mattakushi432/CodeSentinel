@@ -17,13 +17,13 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.limiter import limiter
-from app.routers import auth, billing, dashboard, repositories, reviews, rules, webhooks
+from app.routers import auth, dashboard, repositories, reviews, rules, webhooks
 from app.worker.tasks import review_worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-_CSRF_SKIP_PREFIXES = ("/webhooks/", "/billing/stripe-webhook", "/metrics", "/health", "/static/")
+_CSRF_SKIP_PREFIXES = ("/webhooks/", "/metrics", "/health", "/static/")
 _MUTATION_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -68,7 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         csp = (
             f"default-src 'self'; "
             f"script-src 'self' 'nonce-{nonce}'; "
-            f"style-src 'self' 'unsafe-inline'; "
+            f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             f"img-src 'self' data:; "
             f"font-src 'self' https://fonts.gstatic.com; "
             f"connect-src 'self'; "
@@ -185,11 +185,7 @@ def create_app() -> FastAPI:
     app.include_router(repositories.router)
     app.include_router(reviews.router)
     app.include_router(rules.router)
-    app.include_router(billing.router)
     app.include_router(webhooks.router)
-
-    if settings.dev_mode:
-        app.add_api_route("/auth/dev-login", auth.dev_login, methods=["GET"])
 
     @app.get("/health", response_model=HealthResponse)
     def health():

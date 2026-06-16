@@ -7,25 +7,23 @@ from sqlalchemy.orm import Session
 from app.models.organization import Organization
 from app.models.rule import Rule
 from app.models.user import User
-from app.services.auth_service import generate_magic_token
+from app.services.auth_service import hash_password
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
+_TEST_PASSWORD = "testpassword123"
+
 
 def _setup_and_login(client: TestClient, db: Session) -> tuple[User, Organization]:
     email = f"rules-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.flush()
-    org = Organization(name="myorg", owner_id=user.id, plan="free")
+    org = Organization(name="myorg", owner_id=user.id)
     db.add(org)
     db.commit()
     db.refresh(user)
     db.refresh(org)
 
-    token = generate_magic_token(email)
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    resp = client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
     assert resp.status_code in (302, 303), f"Login failed: {resp.status_code}"
     return user, org
 
@@ -184,10 +182,10 @@ def test_delete_rule_from_other_org_ignored(client: TestClient, db: Session):
     _setup_and_login(client, db)
 
     other_email = f"other-{uuid.uuid4()}@example.com"
-    other_user = User(email=other_email, plan="free")
+    other_user = User(email=other_email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(other_user)
     db.flush()
-    other_org = Organization(name="otherorg", owner_id=other_user.id, plan="free")
+    other_org = Organization(name="otherorg", owner_id=other_user.id)
     db.add(other_org)
     db.flush()
     other_rule = Rule(org_id=other_org.id, name="other-rule", language="all")

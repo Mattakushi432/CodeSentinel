@@ -122,13 +122,6 @@ async def run_review(job_id: int, db: Session) -> None:
     try:
         repo: Repository = job.repository
         org = repo.organization
-        if org.monthly_limit_reached():
-            job.status = JobStatus.skipped
-            job.error_msg = f"Monthly review limit reached ({org.monthly_review_limit}/month on {org.plan} plan)"
-            job.finished_at = datetime.now(timezone.utc)
-            db.commit()
-            return
-
         git_client = get_git_host_client(repo.git_host, repo.base_url, repo.get_access_token())
         llm_client = get_llm_client()
 

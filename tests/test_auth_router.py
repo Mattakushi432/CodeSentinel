@@ -1,32 +1,29 @@
 """Tests for app/routers/auth.py"""
 import uuid
-from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
 from app.models.user import User
-from app.services.auth_service import generate_magic_token
+from app.services.auth_service import hash_password
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
+_TEST_PASSWORD = "testpassword123"
 
-def _login(client: TestClient, db: Session) -> User:
-    """Create a user+org, verify via magic link, return the user."""
+
+def _create_user_and_login(client: TestClient, db: Session) -> User:
+    """Create a user+org with a known password, then log in."""
     email = f"auth-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.flush()
-    org = Organization(name="testorg", owner_id=user.id, plan="free")
+    org = Organization(name="testorg", owner_id=user.id)
     db.add(org)
     db.commit()
     db.refresh(user)
 
-    token = generate_magic_token(email)
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
-    assert resp.status_code in (302, 303)
+    resp = client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
+    assert resp.status_code in (302, 303), f"Login failed: {resp.status_code}"
     return user
 
 
@@ -41,86 +38,114 @@ def test_login_page_returns_200(client: TestClient):
 
 
 # ---------------------------------------------------------------------------
-# POST /auth/login
+# GET /auth/register
 # ---------------------------------------------------------------------------
 
-def test_login_submit_valid_email_returns_magic_link_sent(client: TestClient, db: Session):
-    with patch("app.routers.auth.send_magic_link", new_callable=AsyncMock) as mock_send:
-        resp = client.post("/auth/login", data={"email": "user@example.com"})
-    mock_send.assert_awaited_once()
+def test_register_page_returns_200(client: TestClient):
+    resp = client.get("/auth/register")
     assert resp.status_code == 200
-    # The response should render the magic_link_sent template
     assert "text/html" in resp.headers["content-type"]
 
 
-def test_login_submit_strips_and_lowercases_email(client: TestClient, db: Session):
-    captured = {}
-
-    async def capture(to_email, magic_url):
-        captured["email"] = to_email
-
-    with patch("app.routers.auth.send_magic_link", side_effect=capture):
-        client.post("/auth/login", data={"email": "  User@EXAMPLE.COM  "})
-
-    assert captured.get("email") == "user@example.com"
-
-
 # ---------------------------------------------------------------------------
-# GET /auth/verify
+# POST /auth/register
 # ---------------------------------------------------------------------------
 
-def test_verify_valid_token_creates_user_and_redirects(client: TestClient, db: Session):
+def test_register_creates_user_and_redirects(client: TestClient, db: Session):
     email = f"newuser-{uuid.uuid4()}@example.com"
-    token = generate_magic_token(email)
-
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
-
-    # Should redirect to /
+    resp = client.post(
+        "/auth/register",
+        data={"email": email, "password": "strongpass1", "password_confirm": "strongpass1"},
+        follow_redirects=False,
+    )
     assert resp.status_code in (302, 303)
     assert resp.headers["location"] == "/"
 
-    # User should have been created in DB
     user = db.query(User).filter(User.email == email).first()
     assert user is not None
+    assert user.password_hash is not None
 
-    # Org should have been created too
     org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     assert org is not None
 
 
-def test_verify_valid_token_existing_user_no_duplicate(client: TestClient, db: Session):
-    email = f"existing-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+def test_register_duplicate_email_shows_error(client: TestClient, db: Session):
+    email = f"dup-{uuid.uuid4()}@example.com"
+    user = User(email=email, password_hash=hash_password("pass1234"))
     db.add(user)
-    db.flush()
-    org = Organization(name="myorg", owner_id=user.id, plan="free")
-    db.add(org)
     db.commit()
 
-    token = generate_magic_token(email)
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    resp = client.post(
+        "/auth/register",
+        data={"email": email, "password": "pass1234", "password_confirm": "pass1234"},
+    )
+    assert resp.status_code == 200
+    assert b"already exists" in resp.content.lower()
+
+
+def test_register_password_mismatch_shows_error(client: TestClient):
+    resp = client.post(
+        "/auth/register",
+        data={"email": "mismatch@example.com", "password": "pass1234", "password_confirm": "different"},
+    )
+    assert resp.status_code == 200
+    assert b"do not match" in resp.content.lower()
+
+
+def test_register_password_too_short_shows_error(client: TestClient):
+    resp = client.post(
+        "/auth/register",
+        data={"email": "short@example.com", "password": "abc", "password_confirm": "abc"},
+    )
+    assert resp.status_code == 200
+    assert b"at least" in resp.content.lower()
+
+
+def test_register_invalid_email_shows_error(client: TestClient):
+    resp = client.post(
+        "/auth/register",
+        data={"email": "not-an-email", "password": "pass1234", "password_confirm": "pass1234"},
+    )
+    assert resp.status_code == 200
+    assert b"valid email" in resp.content.lower()
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/login
+# ---------------------------------------------------------------------------
+
+def test_login_valid_credentials_redirects(client: TestClient, db: Session):
+    email = f"login-{uuid.uuid4()}@example.com"
+    user = User(email=email, password_hash=hash_password("correctpass"))
+    db.add(user)
+    db.commit()
+
+    resp = client.post("/auth/login", data={"email": email, "password": "correctpass"}, follow_redirects=False)
     assert resp.status_code in (302, 303)
-
-    # No duplicate user should exist
-    count = db.query(User).filter(User.email == email).count()
-    assert count == 1
+    assert resp.headers["location"] == "/"
 
 
-def test_verify_invalid_token_shows_login_with_error(client: TestClient):
-    resp = client.get("/auth/verify?token=totally-invalid-token")
+def test_login_wrong_password_shows_error(client: TestClient, db: Session):
+    email = f"wrongpass-{uuid.uuid4()}@example.com"
+    user = User(email=email, password_hash=hash_password("correctpass"))
+    db.add(user)
+    db.commit()
+
+    resp = client.post("/auth/login", data={"email": email, "password": "wrongpass"})
     assert resp.status_code == 200
-    assert "text/html" in resp.headers["content-type"]
-    # Should render login page with error
-    assert b"expired" in resp.content.lower() or b"invalid" in resp.content.lower()
+    assert b"invalid" in resp.content.lower()
 
 
-def test_verify_expired_token_shows_error(client: TestClient):
-    # We patch verify_magic_token to simulate expiry
-    with patch("app.routers.auth.verify_magic_token", return_value=None):
-        resp = client.get("/auth/verify?token=sometoken")
+def test_login_nonexistent_email_shows_error(client: TestClient):
+    resp = client.post("/auth/login", data={"email": "nobody@example.com", "password": "somepass"})
     assert resp.status_code == 200
-    # Should show the login page (not a redirect)
-    assert "text/html" in resp.headers["content-type"]
+    assert b"invalid" in resp.content.lower()
+
+
+def test_login_invalid_email_format_shows_error(client: TestClient):
+    resp = client.post("/auth/login", data={"email": "not-an-email", "password": "somepass"})
+    assert resp.status_code == 200
+    assert b"valid email" in resp.content.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -128,10 +153,8 @@ def test_verify_expired_token_shows_error(client: TestClient):
 # ---------------------------------------------------------------------------
 
 def test_logout_clears_session_and_redirects(client: TestClient, db: Session):
-    # First log in
-    _login(client, db)
+    _create_user_and_login(client, db)
 
-    # Then log out
     resp = client.get("/auth/logout", follow_redirects=False)
     assert resp.status_code in (302, 303)
     assert "/auth/login" in resp.headers["location"]
@@ -144,45 +167,9 @@ def test_logout_without_login_redirects_to_login(client: TestClient):
 
 
 # ---------------------------------------------------------------------------
-# Token replay (CRITICAL fix)
+# dev-login route must not exist
 # ---------------------------------------------------------------------------
 
-def test_verify_token_replay_rejected(client: TestClient, db: Session):
-    """The same magic link token must only be accepted once."""
-    email = f"replay-{uuid.uuid4()}@example.com"
-    token = generate_magic_token(email)
-
-    # First use — should succeed and redirect
-    resp1 = client.get(f"/auth/verify?token={token}", follow_redirects=False)
-    assert resp1.status_code in (302, 303)
-    assert resp1.headers["location"] == "/"
-
-    # Second use — same token must be rejected
-    resp2 = client.get(f"/auth/verify?token={token}", follow_redirects=False)
-    assert resp2.status_code == 200
-    assert b"already used" in resp2.content.lower()
-
-
-# ---------------------------------------------------------------------------
-# Rate limiting on /auth/login (HIGH fix)
-# ---------------------------------------------------------------------------
-
-def test_login_rate_limit_enforced(client: TestClient):
-    """6th POST to /auth/login within a minute should return 429."""
-    with patch("app.routers.auth.send_magic_link", new_callable=AsyncMock):
-        for _ in range(5):
-            resp = client.post("/auth/login", data={"email": "rl@example.com"})
-            assert resp.status_code == 200
-
-        resp = client.post("/auth/login", data={"email": "rl@example.com"})
-        assert resp.status_code == 429
-
-
-# ---------------------------------------------------------------------------
-# dev-login unavailable in production (Phase 3 fix)
-# ---------------------------------------------------------------------------
-
-def test_dev_login_unavailable_when_dev_mode_false(client: TestClient):
-    """GET /auth/dev-login must return 404 when DEV_MODE is not set (production default)."""
+def test_dev_login_route_does_not_exist(client: TestClient):
     resp = client.get("/auth/dev-login", follow_redirects=False)
     assert resp.status_code == 404

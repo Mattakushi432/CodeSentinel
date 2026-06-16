@@ -6,6 +6,8 @@ services:
     container_name: codesentinel_app
     restart: unless-stopped
     env_file: .env
+    ports:
+      - "8000:8000"
     volumes:
       - ./data:/app/data
     depends_on:

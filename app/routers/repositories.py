@@ -73,21 +73,6 @@ def add_repo(
             {"request": request, "user": user, "org": org, "repos": repos, "base_url": settings.base_url, "error": err},
         )
 
-    active_count = db.query(Repository).filter(Repository.org_id == org.id, Repository.active == True).count()  # noqa: E712
-    if active_count >= org.repo_limit:
-        repos = db.query(Repository).filter(Repository.org_id == org.id).all()
-        return templates.TemplateResponse(
-            "dashboard/repos.html",
-            {
-                "request": request,
-                "user": user,
-                "org": org,
-                "repos": repos,
-                "base_url": settings.base_url,
-                "error": f"Plan limit reached ({org.repo_limit} repos). Upgrade to add more.",
-            },
-        )
-
     repo = Repository(
         org_id=org.id,
         git_host=git_host,

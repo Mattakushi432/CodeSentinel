@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Login — CodeSentinel{% endblock %}
+{% block title %}Create Account — CodeSentinel{% endblock %}
 
 {% block auth_canvas %}
 <canvas id="three-canvas" aria-hidden="true"></canvas>
@@ -57,10 +57,7 @@
       var dy = nodeList[a].y - nodeList[b].y;
       var dz = nodeList[a].z - nodeList[b].z;
       if (Math.sqrt(dx*dx + dy*dy + dz*dz) < MAX_DIST) {
-        lineVerts.push(
-          nodeList[a].x, nodeList[a].y, nodeList[a].z,
-          nodeList[b].x, nodeList[b].y, nodeList[b].z
-        );
+        lineVerts.push(nodeList[a].x, nodeList[a].y, nodeList[a].z, nodeList[b].x, nodeList[b].y, nodeList[b].z);
       }
     }
   }
@@ -68,25 +65,6 @@
   lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVerts), 3));
   var lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.09 });
   scene.add(new THREE.LineSegments(lineGeo, lineMat));
-
-  var accentLineVerts = [];
-  for (var p = 0; p < accentCount; p++) {
-    var ap = { x: accentData[p*3], y: accentData[p*3+1], z: accentData[p*3+2] };
-    for (var q = 0; q < NODE_COUNT; q++) {
-      var ndx = nodeList[q].x - ap.x;
-      var ndy = nodeList[q].y - ap.y;
-      var ndz = nodeList[q].z - ap.z;
-      if (Math.sqrt(ndx*ndx + ndy*ndy + ndz*ndz) < MAX_DIST * 0.9) {
-        accentLineVerts.push(ap.x, ap.y, ap.z, nodeList[q].x, nodeList[q].y, nodeList[q].z);
-      }
-    }
-  }
-  if (accentLineVerts.length > 0) {
-    var alGeo = new THREE.BufferGeometry();
-    alGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(accentLineVerts), 3));
-    var alMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.08 });
-    scene.add(new THREE.LineSegments(alGeo, alMat));
-  }
 
   var mx = 0, my = 0, cx = 0, cy = 0;
   document.addEventListener('mousemove', function (e) {
@@ -141,9 +119,9 @@
   <div class="banner-error" role="alert" style="margin-bottom:16px;">{{ error }}</div>
   {% endif %}
 
-  <p class="auth-section-title">Sign in</p>
+  <p class="auth-section-title">Create account</p>
 
-  <form method="post" action="/auth/login" novalidate>
+  <form method="post" action="/auth/register" novalidate>
     <label class="input-label" for="email">Email address</label>
     <input
       id="email"
@@ -162,19 +140,30 @@
       type="password"
       name="password"
       required
-      placeholder="••••••••"
+      placeholder="Min. 8 characters"
       class="input"
       aria-required="true"
-      autocomplete="current-password"
+      autocomplete="new-password"
+    />
+    <label class="input-label" for="password_confirm" style="margin-top:12px;">Confirm password</label>
+    <input
+      id="password_confirm"
+      type="password"
+      name="password_confirm"
+      required
+      placeholder="Repeat password"
+      class="input"
+      aria-required="true"
+      autocomplete="new-password"
     />
     <button type="submit" class="btn btn-primary" style="width:100%;margin-top:14px;">
-      Sign in
+      Create account
     </button>
   </form>
 
   <div class="auth-footer" style="margin-top:16px;">
-    Don't have an account?
-    <a href="/auth/register">Create one</a>
+    Already have an account?
+    <a href="/auth/login">Sign in</a>
     &nbsp;·&nbsp; MIT License ·
     <a href="https://github.com/zakrevskyimaksym/CodeSentinel" target="_blank" rel="noopener noreferrer">GitHub</a>
   </div>

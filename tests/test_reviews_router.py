@@ -8,21 +8,22 @@ from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import JobStatus, ReviewJob
 from app.models.user import User
-from app.services.auth_service import generate_magic_token
+from app.services.auth_service import hash_password
+
+_TEST_PASSWORD = "testpassword123"
 
 
 def _login_with_org(client: TestClient, db: Session) -> tuple[User, Organization]:
     email = f"reviews-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.flush()
-    org = Organization(name="testorg", owner_id=user.id, plan="free")
+    org = Organization(name="testorg", owner_id=user.id)
     db.add(org)
     db.commit()
     db.refresh(user)
     db.refresh(org)
-    token = generate_magic_token(email)
-    client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
     return user, org
 
 
@@ -35,11 +36,10 @@ def test_list_reviews_returns_200(client: TestClient, db: Session):
 
 def test_list_reviews_no_org_returns_200_empty(client: TestClient, db: Session):
     email = f"noorg-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.commit()
-    token = generate_magic_token(email)
-    client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
     resp = client.get("/reviews")
     assert resp.status_code == 200
 

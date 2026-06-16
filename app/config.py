@@ -1,8 +1,11 @@
+import logging
+import secrets
 from functools import lru_cache
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_logger = logging.getLogger(__name__)
 _WEAK_SECRET_KEYS = {"", "change-me-in-production"}
 
 
@@ -13,18 +16,15 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     @model_validator(mode="after")
-    def _reject_weak_secret_key(self) -> "Settings":
-        if self.secret_key in _WEAK_SECRET_KEYS:
-            raise ValueError(
-                "SECRET_KEY must not be the default placeholder. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-            )
-        if len(self.secret_key) < 32:
-            raise ValueError(
-                "SECRET_KEY must be at least 32 characters. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    def _ensure_secret_key(self) -> "Settings":
+        if self.secret_key in _WEAK_SECRET_KEYS or len(self.secret_key) < 32:
+            self.secret_key = secrets.token_hex(32)
+            _logger.warning(
+                "SECRET_KEY not set or too weak — generated a temporary key. "
+                "Sessions will reset on restart. Set SECRET_KEY in your .env to persist sessions."
             )
         return self
+
     base_url: str = "http://localhost:8000"
 
     llm_provider: str = "ollama"
@@ -33,22 +33,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    smtp_from: str = "noreply@codesentinel.dev"
-
-    stripe_secret_key: str = ""
-    stripe_webhook_secret: str = ""
-    stripe_price_pro: str = ""
-    stripe_price_team: str = ""
-
     max_diff_lines: int = 500
     worker_poll_interval: int = 10
     llm_timeout: int = 300
-
-    magic_link_expiry: int = 900  # 15 minutes in seconds
 
     # Fernet key for encrypting access tokens at rest (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     encryption_key: str = ""

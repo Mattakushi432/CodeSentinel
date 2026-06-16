@@ -83,26 +83,10 @@
         Rules
       </a>
 
-      <a href="/billing" class="nav-item {% if request.url.path == '/billing' or request.url.path.startswith('/billing/') %}active{% endif %}"
-         aria-current="{% if request.url.path == '/billing' or request.url.path.startswith('/billing/') %}page{% endif %}">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-        </svg>
-        Billing
-      </a>
     </div>
 
     <div class="sidebar-footer">
       <div class="sidebar-user-email" title="{{ user.email }}">{{ user.email }}</div>
-      {% if org %}
-        <span class="plan-badge
-          {%- if org.plan == 'team' %} plan-badge-team
-          {%- elif org.plan == 'pro' %} plan-badge-pro
-          {%- else %} plan-badge-free{%- endif %}">
-          {{ org.plan }}
-        </span>
-      {% endif %}
       <a href="/auth/logout" class="sidebar-signout">Sign out</a>
     </div>
   </nav>

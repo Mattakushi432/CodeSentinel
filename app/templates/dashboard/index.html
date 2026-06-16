@@ -9,7 +9,7 @@
 
 {% if org %}
 <!-- Stat cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4" style="margin-bottom:24px;">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4" style="margin-bottom:24px;">
   <div class="card card-tilt stat-card fade-up anim-d1" data-tilt>
     <div class="stat-value text-blue" data-count-up>{{ repo_count }}</div>
     <div class="stat-label">Active Repos</div>
@@ -21,16 +21,6 @@
   <div class="card card-tilt stat-card fade-up anim-d3" data-tilt>
     <div class="stat-value text-green" data-count-up>{{ total_reviews }}</div>
     <div class="stat-label">Total Reviews</div>
-  </div>
-  <div class="card card-tilt stat-card fade-up anim-d4" data-tilt>
-    <div class="stat-value
-      {%- if org.plan == 'team' %} text-violet-400
-      {%- elif org.plan == 'pro' %} text-blue
-      {%- else %} text-sub{%- endif %}"
-      style="font-size:20px;letter-spacing:-0.01em;">
-      {{ org.plan | upper }}
-    </div>
-    <div class="stat-label">Current Plan</div>
   </div>
 </div>
 

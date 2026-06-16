@@ -1,25 +1,21 @@
-import hashlib
 import re
-from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.config import Settings, get_settings
 from app.database import get_db
 from app.limiter import limiter
 from app.models.organization import Organization
-from app.models.used_token import UsedToken
 from app.models.user import User
-from app.services.auth_service import generate_magic_token, verify_magic_token
-from app.services.email_service import send_magic_link
+from app.services.auth_service import hash_password, verify_password
 from app.templates_config import templates
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+_MIN_PASSWORD_LEN = 8
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -28,12 +24,12 @@ def login_page(request: Request):
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def login_submit(
     request: Request,
     email: str = Form(...),
+    password: str = Form(...),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
 ):
     email = email.strip().lower()[:254]
     if not _EMAIL_RE.match(email):
@@ -41,77 +37,66 @@ async def login_submit(
             "auth/login.html",
             {"request": request, "error": "Please enter a valid email address."},
         )
-    token = generate_magic_token(email)
-    magic_url = f"{settings.base_url}/auth/verify?token={token}"
-
-    await send_magic_link(email, magic_url)
-    return templates.TemplateResponse(
-        "auth/magic_link_sent.html",
-        {"request": request, "email": email},
-    )
-
-
-@router.get("/verify")
-def verify_magic_link(
-    request: Request,
-    token: str,
-    db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
-    email = verify_magic_token(token)
-    if not email:
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Link expired or invalid. Request a new one."},
-        )
-
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=settings.magic_link_expiry)
-
-    # Atomic insert — the primary-key constraint on token_hash turns concurrent
-    # duplicate requests into an IntegrityError instead of a silent double-login.
-    try:
-        db.add(UsedToken(token_hash=token_hash, expires_at=expires_at))
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Link already used. Request a new one."},
-        )
 
     user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(email=email, plan="free")
-        db.add(user)
-        db.flush()
-        org = Organization(name=email.split("@")[0], owner_id=user.id, plan="free")
-        db.add(org)
-
-    db.commit()
-    db.refresh(user)
+    if not user or not user.password_hash or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": "Invalid email or password."},
+        )
 
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=302)
 
 
-def dev_login(
+@router.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse("auth/register.html", {"request": request})
+
+
+@router.post("/register")
+@limiter.limit("5/minute")
+async def register_submit(
     request: Request,
-    email: str = "dev@localhost",
+    email: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
 ):
-    """Dev-only shortcut — registered only when DEV_MODE=true in create_app()."""
-    assert settings.dev_mode, "dev_login called outside dev mode"
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(email=email, plan="free")
-        db.add(user)
+    email = email.strip().lower()[:254]
+
+    if not _EMAIL_RE.match(email):
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {"request": request, "error": "Please enter a valid email address."},
+        )
+    if len(password) < _MIN_PASSWORD_LEN:
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {"request": request, "error": f"Password must be at least {_MIN_PASSWORD_LEN} characters."},
+        )
+    if password != password_confirm:
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {"request": request, "error": "Passwords do not match."},
+        )
+
+    user = User(email=email, password_hash=hash_password(password))
+    db.add(user)
+    try:
         db.flush()
-        org = Organization(name=email.split("@")[0], owner_id=user.id, plan="free")
-        db.add(org)
-        db.commit()
-        db.refresh(user)
+    except IntegrityError:
+        db.rollback()
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {"request": request, "error": "An account with this email already exists."},
+        )
+
+    org = Organization(name=email.split("@")[0], owner_id=user.id)
+    db.add(org)
+    db.commit()
+    db.refresh(user)
+
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=302)
 
@@ -141,12 +126,10 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 def get_user_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
-    """Returns the user's Organization, or None if not yet created."""
     return db.query(Organization).filter(Organization.owner_id == user.id).first()
 
 
 def require_org(user: User = Depends(require_user), db: Session = Depends(get_db)):
-    """Returns the user's Organization or raises 404."""
     org = db.query(Organization).filter(Organization.owner_id == user.id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")

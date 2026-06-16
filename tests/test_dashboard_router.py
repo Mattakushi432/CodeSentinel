@@ -8,26 +8,24 @@ from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import JobStatus, ReviewJob
 from app.models.user import User
-from app.services.auth_service import generate_magic_token
+from app.services.auth_service import hash_password
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
+_TEST_PASSWORD = "testpassword123"
+
 
 def _setup_and_login(client: TestClient, db: Session) -> tuple[User, Organization]:
-    """Create user+org and establish an authenticated session via magic link."""
+    """Create user+org and establish an authenticated session."""
     email = f"dash-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.flush()
-    org = Organization(name="dashorg", owner_id=user.id, plan="free")
+    org = Organization(name="dashorg", owner_id=user.id)
     db.add(org)
     db.commit()
     db.refresh(user)
     db.refresh(org)
 
-    token = generate_magic_token(email)
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    resp = client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
     assert resp.status_code in (302, 303), f"Login failed: {resp.status_code}"
     return user, org
 
@@ -35,26 +33,13 @@ def _setup_and_login(client: TestClient, db: Session) -> tuple[User, Organizatio
 def _login_user_no_org(client: TestClient, db: Session) -> User:
     """Create a user WITHOUT an org and log in."""
     email = f"noorg-{uuid.uuid4()}@example.com"
-    user = User(email=email, plan="free")
+    user = User(email=email, password_hash=hash_password(_TEST_PASSWORD))
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    token = generate_magic_token(email)
-    # Normally /auth/verify creates an org too; bypass that by patching
-    # the DB query so no org is found during the verify call itself.
-    # Simpler approach: verify will create an org. So instead we create the
-    # user AFTER login by using a fresh user not linked to the session.
-    # Actually, we'll just verify normally (which creates org) and then delete the org.
-    resp = client.get(f"/auth/verify?token={token}", follow_redirects=False)
+    resp = client.post("/auth/login", data={"email": email, "password": _TEST_PASSWORD}, follow_redirects=False)
     assert resp.status_code in (302, 303)
-
-    # Delete the org that was auto-created
-    org = db.query(Organization).filter(Organization.owner_id == user.id).first()
-    if org:
-        db.delete(org)
-        db.commit()
-
     return user
 
 

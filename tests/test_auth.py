@@ -1,20 +1,29 @@
-from app.services.auth_service import generate_magic_token, verify_magic_token
+from app.services.auth_service import hash_password, verify_password
 
 
-def test_magic_token_roundtrip():
-    token = generate_magic_token("test@example.com")
-    assert token
-    email = verify_magic_token(token)
-    assert email == "test@example.com"
+def test_hash_password_returns_string():
+    hashed = hash_password("mysecretpassword")
+    assert isinstance(hashed, str)
+    assert len(hashed) > 20
 
 
-def test_magic_token_invalid():
-    result = verify_magic_token("not-a-valid-token")
-    assert result is None
+def test_verify_password_correct():
+    hashed = hash_password("correct-password")
+    assert verify_password("correct-password", hashed) is True
 
 
-def test_magic_token_tampered():
-    token = generate_magic_token("test@example.com")
-    tampered = token[:-5] + "XXXXX"
-    result = verify_magic_token(tampered)
-    assert result is None
+def test_verify_password_wrong():
+    hashed = hash_password("correct-password")
+    assert verify_password("wrong-password", hashed) is False
+
+
+def test_hash_is_not_plaintext():
+    password = "mysecretpassword"
+    hashed = hash_password(password)
+    assert password not in hashed
+
+
+def test_two_hashes_differ():
+    hashed1 = hash_password("same-password")
+    hashed2 = hash_password("same-password")
+    assert hashed1 != hashed2

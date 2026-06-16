@@ -6,7 +6,7 @@
   <div>
     <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Repositories</h1>
     <p class="text-muted" style="font-size:13px;margin:0;">
-      {{ repos | length }} of {{ org.repo_limit }} repos on {{ org.plan }} plan
+      {{ repos | length }} {{ "repo" if repos | length == 1 else "repos" }}
     </p>
   </div>
   <button onclick="document.getElementById('add-repo-modal').classList.remove('hidden')"
