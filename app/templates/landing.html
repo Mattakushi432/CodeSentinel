@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeSentinel — Self-Hosted AI Code Review</title>
+  <meta name="description" content="Privacy-first AI that reviews pull requests and posts inline comments to GitHub, GitLab, and Gitea. Runs entirely on your own hardware — no code leaves your server.">
+  <meta name="theme-color" content="#0F172A">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/landing.css">
+</head>
+<body>
+
+<!-- ── BACKGROUND ── -->
+<div class="bg-scene" aria-hidden="true">
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+
+<!-- ── NAV ── -->
+<header class="nav" role="banner">
+  <nav class="nav-inner" aria-label="Main navigation">
+    <a href="/" class="nav-logo" aria-label="CodeSentinel home">
+      <div class="nav-logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="nlg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22C55E"/>
+              <stop offset="100%" stop-color="#3B82F6"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 2.5L4.5 7.5v8.5c0 7.2 5 13.9 11.5 15.5C22.5 29.9 27.5 23.2 27.5 16V7.5L16 2.5z" fill="url(#nlg)" opacity="0.95"/>
+          <ellipse cx="16" cy="16" rx="4.5" ry="3.2" stroke="white" stroke-width="1.4" fill="none" opacity="0.9"/>
+          <circle cx="16" cy="16" r="1.4" fill="white" opacity="0.95"/>
+        </svg>
+      </div>
+      <span class="nav-logo-text">CodeSentinel</span>
+      <span class="nav-badge">beta</span>
+    </a>
+
+    <div class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#how-it-works" class="nav-link">How It Works</a>
+      <a href="#quick-start" class="nav-link">Quick Start</a>
+      <a href="https://github.com/Mattakushi432/CodeSentinel" class="nav-link" rel="noopener noreferrer" target="_blank">GitHub</a>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/auth/login" class="btn btn-ghost">Sign in</a>
+      <a href="/auth/register" class="btn btn-primary">
+        Get Started
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </a>
+    </div>
+  </nav>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-inner">
+
+    <div class="hero-content">
+      <div class="hero-badge" role="note">
+        <span class="hero-badge-dot" aria-hidden="true"></span>
+        Self-hosted &nbsp;·&nbsp; Privacy-first &nbsp;·&nbsp; Open source
+      </div>
+
+      <h1 id="hero-heading" class="hero-title">
+        AI Code Review.<br>
+        <span class="hero-title-accent">Zero Cloud.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Automatically reviews pull requests and posts inline comments to
+        GitHub, GitLab, and Gitea — powered by local AI running on your
+        server. Your code <strong>never</strong> leaves.
+      </p>
+
+      <div class="hero-actions">
+        <a href="/auth/register" class="btn btn-primary btn-lg">
+          Get Started Free
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </a>
+        <a href="https://github.com/Mattakushi432/CodeSentinel" class="btn btn-outline btn-lg" rel="noopener noreferrer" target="_blank">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <div class="hero-meta">
+        <span class="hero-meta-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          MIT License
+        </span>
+        <span class="hero-meta-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          CPU — No GPU Required
+        </span>
+        <span class="hero-meta-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          Docker Compose
+        </span>
+      </div>
+    </div>
+
+    <!-- Terminal -->
+    <div class="hero-visual">
+      <div class="terminal" role="img" aria-label="Terminal showing CodeSentinel automatically reviewing a pull request and posting security findings as inline comments">
+        <div class="terminal-titlebar" aria-hidden="true">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="terminal-title">codesentinel — zsh</div>
+        </div>
+        <div class="terminal-body">
+          <pre class="terminal-content" id="terminal-content" aria-hidden="true"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<section class="stats" aria-label="Key metrics">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-value">100%</div>
+      <div class="stat-label">Private — no data sent externally</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">8 GB</div>
+      <div class="stat-label">RAM minimum to run locally</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">7B+</div>
+      <div class="stat-label">Model parameters, CPU only</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">1 cmd</div>
+      <div class="stat-label">Docker Compose deployment</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"><div class="section-divider-line"></div></div>
+
+<!-- ── FEATURES ── -->
+<section id="features" class="features" aria-labelledby="features-heading">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Features</div>
+      <h2 id="features-heading" class="section-title">
+        Everything you need.<br>Nothing you don't.
+      </h2>
+      <p class="section-subtitle">
+        Built for developers who take code quality and data sovereignty seriously.
+      </p>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <div class="feature-name">Privacy by Design</div>
+        <div class="feature-desc">Your source code never leaves your server. All LLM inference runs locally via Ollama — zero external API calls required.</div>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        </div>
+        <div class="feature-name">Local AI via Ollama</div>
+        <div class="feature-desc">Powered by <code>qwen2.5-coder:7b</code> and any model available via Ollama. Runs on CPU with 8 GB RAM. Optional Groq fallback for burst load.</div>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </div>
+        <div class="feature-name">GitHub · GitLab · Gitea</div>
+        <div class="feature-desc">Connect any repository from GitHub, GitLab, or Gitea. Reviews trigger automatically on every pull request via webhook.</div>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+        </div>
+        <div class="feature-name">Inline PR Comments</div>
+        <div class="feature-desc">Findings are posted as inline comments on the exact lines of your PR — right inside your normal code review flow, no separate dashboard.</div>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div class="feature-name">Custom Review Rules</div>
+        <div class="feature-desc">Define per-repository rules that guide the AI: security checklists, coding standards, team conventions — all stored locally on your server.</div>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div class="feature-name">Docker Compose Ready</div>
+        <div class="feature-desc">One <code>docker compose up -d</code> starts the FastAPI app, Ollama inference engine, and Caddy reverse proxy. Works on any Linux server.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"><div class="section-divider-line"></div></div>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how-it-works" class="how-it-works" aria-labelledby="hiw-heading">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Workflow</div>
+      <h2 id="hiw-heading" class="section-title">Up and reviewing in minutes</h2>
+      <p class="section-subtitle">Connect your repository once. Every pull request is reviewed automatically from that point on.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-number" aria-label="Step 1">01</div>
+        <div class="step-name">Connect Your Repository</div>
+        <div class="step-desc">Add your GitHub, GitLab, or Gitea repository in the dashboard. CodeSentinel generates a webhook URL — paste it into your repo and you're done.</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number" aria-label="Step 2">02</div>
+        <div class="step-name">AI Reviews Each PR</div>
+        <div class="step-desc">When a pull request opens, the webhook fires. Ollama runs the diff through your local model and identifies bugs, security issues, and style violations.</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number" aria-label="Step 3">03</div>
+        <div class="step-name">Inline Comments Appear</div>
+        <div class="step-desc">Findings are posted as inline comments on the exact lines of your PR — right inside your normal code review view. No separate dashboard to check.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"><div class="section-divider-line"></div></div>
+
+<!-- ── QUICK START ── -->
+<section id="quick-start" class="quick-start" aria-labelledby="qs-heading">
+  <div class="qs-inner">
+    <div class="section-header reveal">
+      <div class="section-eyebrow">Quick Start</div>
+      <h2 id="qs-heading" class="section-title">Five commands to production</h2>
+      <p class="section-subtitle">A single Docker Compose stack — FastAPI, Ollama, Caddy. No cloud account needed.</p>
+    </div>
+
+    <div class="code-block reveal">
+      <div class="code-header">
+        <span class="code-lang">bash</span>
+        <button class="code-copy-btn" id="copy-btn" type="button" aria-label="Copy commands to clipboard">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+      <div class="code-body">
+        <pre id="qs-code" aria-label="Quick start commands"><span class="c-cmt"># 1. Clone the repository</span>
+<span class="c-cmd">git clone https://github.com/Mattakushi432/CodeSentinel.git</span>
+<span class="c-cmd">cd CodeSentinel</span>
+
+<span class="c-cmt"># 2. Configure environment</span>
+<span class="c-cmd">cp .env.example .env</span>
+<span class="c-cmt"># Set SECRET_KEY and BASE_URL in .env</span>
+
+<span class="c-cmt"># 3. Start all services</span>
+<span class="c-cmd">docker compose up -d</span>
+
+<span class="c-cmt"># 4. Pull the AI model  (~4 GB, one-time)</span>
+<span class="c-cmd">docker exec codesentinel_ollama ollama pull qwen2.5-coder:7b-instruct</span>
+
+<span class="c-cmt"># 5. Open the dashboard</span>
+<span class="c-cmd">open http://localhost:8000</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" aria-hidden="true"><div class="section-divider-line"></div></div>
+
+<!-- ── PLATFORMS ── -->
+<section class="platforms" aria-label="Supported platforms and tools">
+  <div class="platforms-inner">
+    <p class="platforms-label">Works with</p>
+    <div class="platforms-row">
+
+      <div class="platform-item">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-label="GitHub"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
+        GitHub
+      </div>
+
+      <div class="platform-item">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-label="GitLab"><path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 01-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 014.82 2a.43.43 0 01.58 0 .42.42 0 01.11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0118.6 2a.43.43 0 01.58 0 .42.42 0 01.11.18l2.44 7.51L23 13.45a.84.84 0 01-.35.94z"/></svg>
+        GitLab
+      </div>
+
+      <div class="platform-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-label="Gitea">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M13 13l6 6"/>
+        </svg>
+        Gitea
+      </div>
+
+      <div class="platform-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-label="Ollama">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+        </svg>
+        Ollama
+      </div>
+
+      <div class="platform-item">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-label="Docker"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.186.186 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288z"/></svg>
+        Docker
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="flg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22C55E"/>
+              <stop offset="100%" stop-color="#3B82F6"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 2.5L4.5 7.5v8.5c0 7.2 5 13.9 11.5 15.5C22.5 29.9 27.5 23.2 27.5 16V7.5L16 2.5z" fill="url(#flg)" opacity="0.95"/>
+          <ellipse cx="16" cy="16" rx="4.5" ry="3.2" stroke="white" stroke-width="1.4" fill="none" opacity="0.9"/>
+          <circle cx="16" cy="16" r="1.4" fill="white" opacity="0.95"/>
+        </svg>
+      </div>
+      <span class="footer-logo-text">CodeSentinel</span>
+    </div>
+
+    <div class="footer-copy">MIT License &copy; 2024 CodeSentinel</div>
+
+    <div class="footer-links">
+      <a href="https://github.com/Mattakushi432/CodeSentinel" class="footer-link" rel="noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/Mattakushi432/CodeSentinel/tree/main/docs" class="footer-link" rel="noopener noreferrer" target="_blank">Docs</a>
+      <a href="/auth/login" class="footer-link">Sign In</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/static/js/landing.js"></script>
+</body>
+</html>
