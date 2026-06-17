@@ -2,16 +2,18 @@
 {% block title %}Repositories — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="fade-up" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+<div class="page-header fade-up">
   <div>
-    <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Repositories</h1>
-    <p class="text-muted" style="font-size:13px;margin:0;">
-      {{ repos | length }} {{ "repo" if repos | length == 1 else "repos" }}
+    <h1 class="page-title">Repositories</h1>
+    <p class="page-subtitle">
+      {{ repos | length }} {{ "repository" if repos | length == 1 else "repositories" }}
     </p>
   </div>
-  <button onclick="document.getElementById('add-repo-modal').classList.remove('hidden')"
-    class="btn btn-primary">
-    + Add repository
+  <button onclick="openModal()" class="btn btn-primary">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Add repository
   </button>
 </div>
 
@@ -22,43 +24,46 @@
 {% if repos %}
 <div style="display:flex;flex-direction:column;gap:10px;">
   {% for repo in repos %}
-  <div class="card card-tilt fade-up" style="padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;" data-tilt>
-    <div class="flex-1 min-w-0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap;">
-        <span style="font-size:13px;font-weight:600;color:#f1f5f9;">{{ repo.repo_full_name }}</span>
-        <span class="badge badge-skipped" style="padding:1px 6px;font-size:10px;">{{ repo.git_host }}</span>
-        {% if not repo.active %}
-        <span class="badge badge-error" style="padding:1px 6px;font-size:10px;">inactive</span>
+  <div class="card card-tilt fade-up" data-tilt>
+    <div class="repo-card-body">
+      <div class="repo-info">
+        <div class="repo-name">
+          <span>{{ repo.repo_full_name }}</span>
+          <span class="badge badge-skipped" style="padding:1px 6px;font-size:10px;">{{ repo.git_host }}</span>
+          {% if not repo.active %}
+          <span class="badge badge-error" style="padding:1px 6px;font-size:10px;">inactive</span>
+          {% endif %}
+        </div>
+        {% if repo.base_url %}
+        <div class="repo-url">{{ repo.base_url }}</div>
         {% endif %}
       </div>
-      {% if repo.base_url %}
-      <div class="text-muted font-mono" style="font-size:11px;">{{ repo.base_url }}</div>
-      {% endif %}
-    </div>
 
-    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-      <span class="text-muted" style="font-size:11px;">Webhook:</span>
-      <code id="wh-{{ repo.id }}" style="font-size:10px;user-select:all;">{{ base_url }}/webhooks/{{ repo.id }}</code>
-      <button
-        onclick="copyToClipboard(this, '{{ base_url }}/webhooks/{{ repo.id }}')"
-        class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">
-        Copy
-      </button>
-    </div>
+      <div class="webhook-row">
+        <span class="text-muted" style="font-size:11px;">Webhook:</span>
+        <code id="wh-{{ repo.id }}" style="font-size:10px;user-select:all;">{{ base_url }}/webhooks/{{ repo.id }}</code>
+        <button
+          onclick="copyToClipboard(this, '{{ base_url }}/webhooks/{{ repo.id }}')"
+          class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">
+          Copy
+        </button>
+      </div>
 
-    <form method="post" action="/repos/{{ repo.id }}/delete">
-      <button type="submit" class="btn btn-danger"
-        onclick="return confirm('Remove this repository?')">
-        Remove
-      </button>
-    </form>
+      <form method="post" action="/repos/{{ repo.id }}/delete">
+        <button type="submit" class="btn btn-danger"
+          onclick="return confirm('Remove this repository?')">
+          Remove
+        </button>
+      </form>
+    </div>
   </div>
   {% endfor %}
 </div>
 {% else %}
 <div class="card fade-up anim-d1">
   <div class="empty-state">
-    <p class="empty-state-text">No repositories yet. Add one to start receiving reviews.</p>
+    <p class="empty-state-text">No repositories yet.</p>
+    <p class="text-muted" style="font-size:12px;margin-top:4px;opacity:0.65;">Add one to start receiving automated code reviews.</p>
   </div>
 </div>
 {% endif %}
@@ -86,16 +91,15 @@
 {% endif %}
 
 <!-- Add repo modal -->
-<div id="add-repo-modal" class="hidden fixed inset-0 flex items-center justify-center z-50"
-     style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
-  <div class="card" style="padding:24px;width:100%;max-width:420px;margin:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <h2 style="font-size:16px;font-weight:700;margin:0;">Add repository</h2>
-      <button onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
-        class="btn btn-ghost" style="padding:4px 8px;font-size:16px;line-height:1;" aria-label="Close">✕</button>
+<div id="add-repo-modal" class="modal-overlay hidden"
+     role="dialog" aria-modal="true" aria-labelledby="add-repo-title">
+  <div class="card modal-box" style="padding:24px;">
+    <div class="modal-header">
+      <h2 id="add-repo-title" class="modal-title">Add repository</h2>
+      <button onclick="closeModal()" class="modal-close" aria-label="Close">✕</button>
     </div>
 
-    <form method="post" action="/repos" style="display:flex;flex-direction:column;gap:14px;">
+    <form method="post" action="/repos" class="form-stack">
       <div>
         <label class="input-label" for="git_host">Git host</label>
         <select id="git_host" name="git_host" class="input">
@@ -128,11 +132,9 @@
         </p>
       </div>
 
-      <div style="display:flex;gap:10px;margin-top:4px;">
+      <div class="form-actions">
         <button type="submit" class="btn btn-primary" style="flex:1;">Add repository</button>
-        <button type="button"
-          onclick="document.getElementById('add-repo-modal').classList.add('hidden')"
-          class="btn btn-ghost">Cancel</button>
+        <button type="button" onclick="closeModal()" class="btn btn-ghost">Cancel</button>
       </div>
     </form>
   </div>
@@ -140,18 +142,25 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
+var _modal = document.getElementById('add-repo-modal');
+function openModal()  { _modal.classList.remove('hidden'); }
+function closeModal() { _modal.classList.add('hidden'); }
+_modal.addEventListener('click', function (e) { if (e.target === _modal) closeModal(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
 function copyToClipboard(btn, text) {
   function markCopied() {
     btn.textContent = 'Copied!';
-    setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
   }
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(markCopied).catch(function() { fallbackCopy(btn, text); });
+    navigator.clipboard.writeText(text).then(markCopied).catch(function () { fallbackCopy(btn, text); });
   } else {
     fallbackCopy(btn, text);
   }
 }
+
 function fallbackCopy(btn, text) {
   var el = document.createElement('textarea');
   el.value = text;
@@ -160,7 +169,7 @@ function fallbackCopy(btn, text) {
   el.select();
   var ok = document.execCommand('copy');
   document.body.removeChild(el);
-  if (ok) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 1500); }
+  if (ok) { btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); }
 }
 </script>
 {% endblock %}

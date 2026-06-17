@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Login — CodeSentinel{% endblock %}
+{% block title %}Sign In — CodeSentinel{% endblock %}
 
 {% block auth_canvas %}
 <canvas id="three-canvas" aria-hidden="true"></canvas>
@@ -13,42 +13,34 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  var scene = new THREE.Scene();
+  var scene  = new THREE.Scene();
   var camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 50);
   camera.position.z = 10;
 
-  var NODE_COUNT = 130;
-  var SPREAD = 14;
-  var MAX_DIST = 2.8;
-
+  var NODE_COUNT = 120, SPREAD = 15, MAX_DIST = 2.7;
   var posData = new Float32Array(NODE_COUNT * 3);
   var nodeList = [];
   for (var i = 0; i < NODE_COUNT; i++) {
     var x = (Math.random() - 0.5) * SPREAD;
     var y = (Math.random() - 0.5) * SPREAD;
     var z = (Math.random() - 0.5) * SPREAD;
-    posData[i * 3]     = x;
-    posData[i * 3 + 1] = y;
-    posData[i * 3 + 2] = z;
-    nodeList.push({ x: x, y: y, z: z });
+    posData[i*3] = x; posData[i*3+1] = y; posData[i*3+2] = z;
+    nodeList.push({ x:x, y:y, z:z });
   }
-
   var nodeGeo = new THREE.BufferGeometry();
   nodeGeo.setAttribute('position', new THREE.BufferAttribute(posData, 3));
-  var nodeMat = new THREE.PointsMaterial({ color: 0x3b82f6, size: 0.07, transparent: true, opacity: 0.85 });
-  scene.add(new THREE.Points(nodeGeo, nodeMat));
+  scene.add(new THREE.Points(nodeGeo, new THREE.PointsMaterial({ color: 0x22c55e, size: 0.065, transparent: true, opacity: 0.75 })));
 
-  var accentCount = 22;
-  var accentData = new Float32Array(accentCount * 3);
+  var accentCount = 20;
+  var accentData  = new Float32Array(accentCount * 3);
   for (var j = 0; j < accentCount; j++) {
-    accentData[j * 3]     = (Math.random() - 0.5) * SPREAD;
-    accentData[j * 3 + 1] = (Math.random() - 0.5) * SPREAD;
-    accentData[j * 3 + 2] = (Math.random() - 0.5) * SPREAD;
+    accentData[j*3]   = (Math.random()-0.5)*SPREAD;
+    accentData[j*3+1] = (Math.random()-0.5)*SPREAD;
+    accentData[j*3+2] = (Math.random()-0.5)*SPREAD;
   }
   var accentGeo = new THREE.BufferGeometry();
   accentGeo.setAttribute('position', new THREE.BufferAttribute(accentData, 3));
-  var accentMat = new THREE.PointsMaterial({ color: 0x8b5cf6, size: 0.13, transparent: true, opacity: 0.7 });
-  scene.add(new THREE.Points(accentGeo, accentMat));
+  scene.add(new THREE.Points(accentGeo, new THREE.PointsMaterial({ color: 0x3b82f6, size: 0.11, transparent: true, opacity: 0.6 })));
 
   var lineVerts = [];
   for (var a = 0; a < NODE_COUNT; a++) {
@@ -56,56 +48,29 @@
       var dx = nodeList[a].x - nodeList[b].x;
       var dy = nodeList[a].y - nodeList[b].y;
       var dz = nodeList[a].z - nodeList[b].z;
-      if (Math.sqrt(dx*dx + dy*dy + dz*dz) < MAX_DIST) {
-        lineVerts.push(
-          nodeList[a].x, nodeList[a].y, nodeList[a].z,
-          nodeList[b].x, nodeList[b].y, nodeList[b].z
-        );
-      }
+      if (Math.sqrt(dx*dx + dy*dy + dz*dz) < MAX_DIST)
+        lineVerts.push(nodeList[a].x, nodeList[a].y, nodeList[a].z, nodeList[b].x, nodeList[b].y, nodeList[b].z);
     }
   }
   var lineGeo = new THREE.BufferGeometry();
   lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVerts), 3));
-  var lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.09 });
-  scene.add(new THREE.LineSegments(lineGeo, lineMat));
+  scene.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.055 })));
 
-  var accentLineVerts = [];
-  for (var p = 0; p < accentCount; p++) {
-    var ap = { x: accentData[p*3], y: accentData[p*3+1], z: accentData[p*3+2] };
-    for (var q = 0; q < NODE_COUNT; q++) {
-      var ndx = nodeList[q].x - ap.x;
-      var ndy = nodeList[q].y - ap.y;
-      var ndz = nodeList[q].z - ap.z;
-      if (Math.sqrt(ndx*ndx + ndy*ndy + ndz*ndz) < MAX_DIST * 0.9) {
-        accentLineVerts.push(ap.x, ap.y, ap.z, nodeList[q].x, nodeList[q].y, nodeList[q].z);
-      }
-    }
-  }
-  if (accentLineVerts.length > 0) {
-    var alGeo = new THREE.BufferGeometry();
-    alGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(accentLineVerts), 3));
-    var alMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.08 });
-    scene.add(new THREE.LineSegments(alGeo, alMat));
-  }
-
-  var mx = 0, my = 0, cx = 0, cy = 0;
+  var mx = 0, my = 0, cx = 0, cy = 0, autoY = 0;
   document.addEventListener('mousemove', function (e) {
-    mx = (e.clientX / window.innerWidth - 0.5) * 1.2;
-    my = -(e.clientY / window.innerHeight - 0.5) * 0.8;
+    mx = (e.clientX / window.innerWidth  - 0.5) * 1.1;
+    my = -(e.clientY / window.innerHeight - 0.5) * 0.75;
   });
-
   window.addEventListener('resize', function () {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
-
-  var autoY = 0;
   function animate() {
     requestAnimationFrame(animate);
-    autoY += 0.0025;
-    cx += (mx - cx) * 0.04;
-    cy += (my - cy) * 0.04;
+    autoY += 0.002;
+    cx += (mx - cx) * 0.032;
+    cy += (my - cy) * 0.032;
     scene.rotation.y = autoY + cx;
     scene.rotation.x = cy;
     renderer.render(scene, camera);
@@ -116,67 +81,154 @@
 {% endblock %}
 
 {% block auth_content %}
-<div class="auth-card">
-  <div class="auth-brand">
-    <div class="auth-logo-row">
-      <div class="auth-logo-icon">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<div class="auth-split">
+
+  <!-- Left: Branding -->
+  <div class="auth-panel-left" aria-hidden="true">
+
+    <div class="auth-left-logo">
+      <div class="auth-left-logo-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="sg-auth" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#3b82f6"/>
-              <stop offset="100%" stop-color="#8b5cf6"/>
+            <linearGradient id="alg-l" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22C55E"/>
+              <stop offset="100%" stop-color="#3B82F6"/>
             </linearGradient>
           </defs>
-          <path d="M16 2.5L4.5 7.5v8.5c0 7.2 5 13.9 11.5 15.5C22.5 29.9 27.5 23.2 27.5 16V7.5L16 2.5z" fill="url(#sg-auth)" opacity="0.95"/>
+          <path d="M16 2.5L4.5 7.5v8.5c0 7.2 5 13.9 11.5 15.5C22.5 29.9 27.5 23.2 27.5 16V7.5L16 2.5z" fill="url(#alg-l)" opacity="0.95"/>
           <ellipse cx="16" cy="16" rx="4.5" ry="3.2" stroke="white" stroke-width="1.4" fill="none" opacity="0.9"/>
           <circle cx="16" cy="16" r="1.4" fill="white" opacity="0.95"/>
         </svg>
       </div>
-      <span class="auth-logo-name">CodeSentinel</span>
+      <span class="auth-left-logo-name">CodeSentinel</span>
+      <span class="auth-left-badge">beta</span>
     </div>
-    <p class="auth-tagline">AI Code Review on your infrastructure</p>
+
+    <h2 class="auth-left-headline">
+      AI Code Review.<br>
+      <span class="auth-left-headline-accent">Zero Cloud.</span>
+    </h2>
+
+    <p class="auth-left-sub">
+      Privacy-first AI that reviews pull requests and posts inline
+      comments to GitHub, GitLab, and Gitea — powered by local AI
+      running on your server. Your code <strong style="color:#f1f5f9;">never</strong> leaves.
+    </p>
+
+    <ul class="auth-left-features" role="list">
+      <li class="auth-left-feature">
+        <div class="auth-left-check" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 12 12">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2 6l3 3 5-5"/>
+          </svg>
+        </div>
+        Your code never leaves your server
+      </li>
+      <li class="auth-left-feature">
+        <div class="auth-left-check" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 12 12">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2 6l3 3 5-5"/>
+          </svg>
+        </div>
+        GitHub, GitLab &amp; Gitea support
+      </li>
+      <li class="auth-left-feature">
+        <div class="auth-left-check" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 12 12">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2 6l3 3 5-5"/>
+          </svg>
+        </div>
+        Inline PR comments on every review
+      </li>
+      <li class="auth-left-feature">
+        <div class="auth-left-check" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 12 12">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2 6l3 3 5-5"/>
+          </svg>
+        </div>
+        Runs on CPU — no GPU required
+      </li>
+    </ul>
+
+    <div class="auth-left-meta">
+      <span class="auth-left-meta-item">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+        MIT License
+      </span>
+      <span class="auth-left-meta-item">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        Docker Compose
+      </span>
+      <span class="auth-left-meta-item">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        CPU Only
+      </span>
+    </div>
+
   </div>
 
-  {% if error %}
-  <div class="banner-error" role="alert" style="margin-bottom:16px;">{{ error }}</div>
-  {% endif %}
+  <!-- Right: Form -->
+  <div class="auth-panel-right">
+    <div class="auth-form-wrap">
 
-  <p class="auth-section-title">Sign in</p>
+      <p class="auth-form-title">Welcome back</p>
+      <p class="auth-form-subtitle">Sign in to your CodeSentinel account</p>
 
-  <form method="post" action="/auth/login" novalidate>
-    <label class="input-label" for="email">Email address</label>
-    <input
-      id="email"
-      type="email"
-      name="email"
-      required
-      autofocus
-      placeholder="you@example.com"
-      class="input"
-      aria-required="true"
-      autocomplete="email"
-    />
-    <label class="input-label" for="password" style="margin-top:12px;">Password</label>
-    <input
-      id="password"
-      type="password"
-      name="password"
-      required
-      placeholder="••••••••"
-      class="input"
-      aria-required="true"
-      autocomplete="current-password"
-    />
-    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:14px;">
-      Sign in
-    </button>
-  </form>
+      {% if error %}
+      <div class="auth-error" role="alert">{{ error }}</div>
+      {% endif %}
 
-  <div class="auth-footer" style="margin-top:16px;">
-    Don't have an account?
-    <a href="/auth/register">Create one</a>
-    &nbsp;·&nbsp; MIT License ·
-    <a href="https://github.com/zakrevskyimaksym/CodeSentinel" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <form method="post" action="/auth/login" novalidate>
+        <div class="auth-field">
+          <label class="auth-field-label" for="email">Email address</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            autofocus
+            placeholder="you@example.com"
+            class="auth-field-input"
+            aria-required="true"
+            autocomplete="email"
+          />
+        </div>
+        <div class="auth-field">
+          <label class="auth-field-label" for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            required
+            placeholder="Enter your password"
+            class="auth-field-input"
+            aria-required="true"
+            autocomplete="current-password"
+          />
+        </div>
+        <button type="submit" class="btn-auth-primary">
+          Sign in
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </button>
+      </form>
+
+      <div class="auth-form-footer">
+        Don't have an account?
+        <a href="/auth/register">Create one</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/zakrevskyimaksym/CodeSentinel" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+
+    </div>
   </div>
+
 </div>
 {% endblock %}

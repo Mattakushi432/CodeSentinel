@@ -2,19 +2,20 @@
 {% block title %}Rules — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="fade-up" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+<div class="page-header fade-up">
   <div>
-    <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Review Rules</h1>
-    <p class="text-muted" style="font-size:13px;margin:0;">Custom rules injected into every code review prompt</p>
+    <h1 class="page-title">Review Rules</h1>
+    <p class="page-subtitle">Custom rules injected into every code review prompt</p>
   </div>
-  <button id="open-add-rule" class="btn btn-primary" style="white-space:nowrap;">+ Add rule</button>
+  <button id="open-add-rule" class="btn btn-primary">+ Add rule</button>
 </div>
 
 {% if rules %}
 <div class="card fade-up anim-d1">
+  <div class="stagger-list">
   {% for rule in rules %}
   <div class="list-row" style="{% if not rule.enabled %}opacity:0.5;{% endif %}">
-    <div style="flex:1;min-width:0;">
+    <div class="flex-1">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:13px;font-weight:600;color:var(--color-text);">{{ rule.name }}</span>
         {% if rule.language and rule.language != 'all' %}
@@ -44,6 +45,7 @@
     </div>
   </div>
   {% endfor %}
+  </div>
 </div>
 {% else %}
 <div class="card fade-up anim-d1">
@@ -57,14 +59,14 @@
 {% endif %}
 
 <!-- Add rule modal -->
-<div id="add-rule-modal" role="dialog" aria-modal="true" aria-labelledby="add-rule-title"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:50;">
-  <div class="card" style="padding:24px;width:100%;max-width:440px;margin:0 16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 id="add-rule-title" style="font-size:16px;font-weight:700;margin:0;">Add rule</h2>
-      <button id="close-add-rule" class="btn btn-ghost" style="font-size:18px;padding:2px 8px;line-height:1;" aria-label="Close">✕</button>
+<div id="add-rule-modal" class="modal-overlay hidden"
+     role="dialog" aria-modal="true" aria-labelledby="add-rule-title">
+  <div class="card modal-box" style="padding:24px;">
+    <div class="modal-header">
+      <h2 id="add-rule-title" class="modal-title">Add rule</h2>
+      <button id="close-add-rule" class="modal-close" aria-label="Close">✕</button>
     </div>
-    <form method="post" action="/rules" style="display:flex;flex-direction:column;gap:14px;">
+    <form method="post" action="/rules" class="form-stack">
       <div>
         <label class="input-label" for="rule-name">Rule name</label>
         <input id="rule-name" type="text" name="name" required placeholder="No hardcoded secrets" class="input" />
@@ -93,7 +95,7 @@
           <option value="java">Java</option>
         </select>
       </div>
-      <div style="display:flex;gap:8px;padding-top:4px;">
+      <div class="form-actions">
         <button type="submit" class="btn btn-primary" style="flex:1;">Add rule</button>
         <button type="button" id="cancel-add-rule" class="btn btn-ghost">Cancel</button>
       </div>
@@ -104,12 +106,13 @@
 <script nonce="{{ request.state.csp_nonce }}">
 (function () {
   var modal = document.getElementById('add-rule-modal');
-  function openModal() { modal.style.display = 'flex'; }
-  function closeModal() { modal.style.display = 'none'; }
+  function openModal()  { modal.classList.remove('hidden'); }
+  function closeModal() { modal.classList.add('hidden'); }
   document.getElementById('open-add-rule').addEventListener('click', openModal);
   document.getElementById('close-add-rule').addEventListener('click', closeModal);
   document.getElementById('cancel-add-rule').addEventListener('click', closeModal);
   modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 })();
 </script>
 {% endblock %}

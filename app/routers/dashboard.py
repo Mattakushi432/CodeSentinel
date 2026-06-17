@@ -7,7 +7,7 @@ from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review_job import JobStatus, ReviewJob
 from app.models.user import User
-from app.routers.auth import get_user_org, require_user
+from app.routers.auth import get_current_user
 from app.templates_config import templates
 
 router = APIRouter(tags=["dashboard"])
@@ -16,10 +16,13 @@ router = APIRouter(tags=["dashboard"])
 @router.get("/", response_class=HTMLResponse)
 def dashboard(
     request: Request,
-    user: User = Depends(require_user),
-    org: Organization | None = Depends(get_user_org),
+    user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not user:
+        return templates.TemplateResponse(request, "landing.html", {})
+
+    org: Organization | None = db.query(Organization).filter(Organization.owner_id == user.id).first()
     if not org:
         return templates.TemplateResponse(request, "dashboard/index.html", {"user": user, "org": None})
 

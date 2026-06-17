@@ -2,10 +2,10 @@
 {% block title %}Reviews — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="fade-up" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+<div class="page-header fade-up">
   <div>
-    <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Reviews</h1>
-    <p class="text-muted" style="font-size:13px;margin:0;">{{ total }} total review jobs</p>
+    <h1 class="page-title">Reviews</h1>
+    <p class="page-subtitle">{{ total }} total review jobs</p>
   </div>
 
   {% if repos %}
@@ -26,17 +26,19 @@
 
 {% if jobs %}
 <div class="card fade-up anim-d1">
-  {% for job in jobs %}
-  <div class="list-row" id="job-{{ job.id }}"
-    {% if job.status in ('pending', 'processing') %}
-    hx-get="/reviews/job/{{ job.id }}/status"
-    hx-trigger="every 10s"
-    hx-target="#job-{{ job.id }}"
-    hx-swap="outerHTML"
-    {% endif %}>
-    {% include "partials/job_row.html" %}
+  <div class="stagger-list">
+    {% for job in jobs %}
+    <div class="list-row" id="job-{{ job.id }}"
+      {% if job.status in ('pending', 'processing') %}
+      hx-get="/reviews/job/{{ job.id }}/status"
+      hx-trigger="every 10s"
+      hx-target="#job-{{ job.id }}"
+      hx-swap="outerHTML"
+      {% endif %}>
+      {% include "partials/job_row.html" %}
+    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
 
 {% if total_pages > 1 %}

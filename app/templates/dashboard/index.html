@@ -2,37 +2,63 @@
 {% block title %}Dashboard — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="fade-up" style="margin-bottom:24px;">
-  <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">Dashboard</h1>
-  <p class="text-muted" style="font-size:13px;margin:0;">Overview of your code reviews</p>
-</div>
 
 {% if org %}
+<div class="page-header fade-up">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of your code reviews</p>
+  </div>
+</div>
+
 <!-- Stat cards -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
-  <div class="card card-tilt stat-card fade-up anim-d1" data-tilt>
+<div class="stats-grid fade-up anim-d1">
+  <div class="card card-tilt stat-card" data-tilt>
+    <div class="stat-icon-wrap stat-icon-blue" aria-hidden="true">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+      </svg>
+    </div>
     <div class="stat-value text-blue" data-count-up>{{ repo_count }}</div>
     <div class="stat-label">Active Repos</div>
   </div>
-  <div class="card card-tilt stat-card fade-up anim-d2" data-tilt>
+
+  <div class="card card-tilt stat-card" data-tilt>
+    <div class="stat-icon-wrap stat-icon-yellow" aria-hidden="true">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
     <div class="stat-value" style="color:#facc15;" data-count-up>{{ pending_count }}</div>
     <div class="stat-label">Pending Reviews</div>
   </div>
-  <div class="card card-tilt stat-card fade-up anim-d3" data-tilt>
+
+  <div class="card card-tilt stat-card" data-tilt>
+    <div class="stat-icon-wrap stat-icon-green" aria-hidden="true">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
     <div class="stat-value text-green" data-count-up>{{ total_reviews }}</div>
     <div class="stat-label">Total Reviews</div>
   </div>
 </div>
 
 <!-- Recent reviews -->
-<div class="card fade-up anim-d5">
-  <div class="table-header">
-    <span class="table-header-title">Recent Reviews</span>
+<div class="card fade-up anim-d4">
+  <div class="section-header">
+    <span class="section-title">
+      {% if pending_count > 0 %}<span class="live-dot" aria-label="Reviews in progress"></span>{% endif %}
+      Recent Reviews
+    </span>
     <a href="/reviews" class="link-blue" style="font-size:12px;">View all →</a>
   </div>
 
   {% if recent_jobs %}
-  <div>
+  <div class="stagger-list">
     {% for job in recent_jobs %}
     <div class="list-row" id="job-{{ job.id }}"
       {% if job.status in ('pending', 'processing') %}
@@ -48,28 +74,36 @@
   {% else %}
   <div class="empty-state">
     <p class="empty-state-text">No reviews yet.</p>
-    <a href="/repos" class="link-blue" style="font-size:13px;display:inline-block;margin-top:6px;">Add a repository →</a>
+    <a href="/repos" class="link-blue" style="font-size:13px;display:inline-block;margin-top:8px;">Add a repository →</a>
   </div>
   {% endif %}
 </div>
 
 {% else %}
 <!-- Onboarding -->
-<div class="card card-tilt fade-up anim-d1" data-tilt style="padding:48px 32px;text-align:center;">
-  <div style="width:52px;height:52px;border-radius:50%;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-    <svg style="width:24px;height:24px;color:#60a5fa;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+<div class="page-header fade-up">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Get started with CodeSentinel</p>
+  </div>
+</div>
+
+<div class="card card-tilt welcome-card fade-up anim-d1" data-tilt>
+  <div class="welcome-icon-ring" aria-hidden="true">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
     </svg>
   </div>
-  <h2 style="font-size:18px;font-weight:700;letter-spacing:-0.02em;margin:0 0 8px;">Welcome to CodeSentinel</h2>
-  <p class="text-muted" style="font-size:13px;margin:0 0 24px;">Add your first repository to start getting AI code reviews.</p>
+  <h2 class="welcome-title">Welcome to CodeSentinel</h2>
+  <p class="welcome-sub">Add your first repository to start receiving AI-powered code reviews automatically on every pull request.</p>
   <a href="/repos" class="btn btn-primary">Add repository</a>
 </div>
 {% endif %}
+
 {% endblock %}
 
 {% block page_scripts %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
 (function () {
   function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 

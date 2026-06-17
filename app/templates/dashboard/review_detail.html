@@ -2,11 +2,11 @@
 {% block title %}Review #{{ job.id }} — CodeSentinel{% endblock %}
 
 {% block content %}
-<div class="fade-up" style="margin-bottom:24px;">
-  <a href="/reviews" class="link-blue" style="font-size:12px;display:inline-block;margin-bottom:8px;">← All reviews</a>
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-    <div class="min-w-0">
-      <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;">
+<div class="fade-up">
+  <a href="/reviews" class="back-link">← All reviews</a>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">
+    <div class="flex-1">
+      <h1 class="page-title" style="margin-bottom:4px;">
         {% if job.pr_url %}
         <a href="{{ job.pr_url }}" target="_blank" rel="noopener noreferrer"
            style="color:inherit;text-decoration:none;">
@@ -16,7 +16,7 @@
         {{ job.pr_title or "PR #" ~ job.pr_number }}
         {% endif %}
       </h1>
-      <p class="text-muted" style="font-size:13px;margin:0;">
+      <p class="page-subtitle">
         {{ job.repository.repo_full_name }} · PR #{{ job.pr_number }}
         {% if job.pr_author %} · by @{{ job.pr_author }}{% endif %}
       </p>
@@ -34,27 +34,27 @@
 </div>
 
 <!-- Meta info -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4" style="margin-bottom:20px;">
-  <div class="card card-tilt fade-up anim-d1" data-tilt style="padding:14px 16px;">
-    <div class="text-muted" style="font-size:11px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">Created</div>
-    <div style="font-size:13px;font-weight:500;">{{ job.created_at.strftime('%b %d, %Y %H:%M') }}</div>
+<div class="meta-grid fade-up anim-d1">
+  <div class="card card-tilt info-card" data-tilt>
+    <div class="info-card-label">Created</div>
+    <div class="info-card-value">{{ job.created_at.strftime('%b %d, %Y %H:%M') }}</div>
   </div>
   {% if job.duration_seconds %}
-  <div class="card card-tilt fade-up anim-d2" data-tilt style="padding:14px 16px;">
-    <div class="text-muted" style="font-size:11px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">Review time</div>
-    <div style="font-size:13px;font-weight:500;">{{ "%.0f"|format(job.duration_seconds) }}s</div>
+  <div class="card card-tilt info-card" data-tilt>
+    <div class="info-card-label">Review time</div>
+    <div class="info-card-value">{{ "%.0f"|format(job.duration_seconds) }}s</div>
   </div>
   {% endif %}
   {% if job.diff_lines %}
-  <div class="card card-tilt fade-up anim-d3" data-tilt style="padding:14px 16px;">
-    <div class="text-muted" style="font-size:11px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">Lines changed</div>
-    <div style="font-size:13px;font-weight:500;">{{ job.diff_lines }}</div>
+  <div class="card card-tilt info-card" data-tilt>
+    <div class="info-card-label">Lines changed</div>
+    <div class="info-card-value">{{ job.diff_lines }}</div>
   </div>
   {% endif %}
   {% if job.model_used %}
-  <div class="card card-tilt fade-up anim-d4" data-tilt style="padding:14px 16px;">
-    <div class="text-muted" style="font-size:11px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">Model</div>
-    <div class="font-mono truncate" style="font-size:12px;font-weight:500;">{{ job.model_used }}</div>
+  <div class="card card-tilt info-card" data-tilt>
+    <div class="info-card-label">Model</div>
+    <div class="info-card-value font-mono truncate">{{ job.model_used }}</div>
   </div>
   {% endif %}
 </div>
@@ -67,7 +67,7 @@
 
 {% if job.review %}
 <!-- Severity summary -->
-<div class="fade-up anim-d2" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+<div class="sev-strip fade-up anim-d2">
   {% if job.review.severity_high %}
   <span class="badge badge-error" style="padding:5px 12px;font-size:12px;">
     <span class="sev-dot sev-dot-high" aria-hidden="true"></span>
@@ -95,23 +95,22 @@
 
 {% set issues = job.review.issues_json or [] %}
 {% if issues %}
-<div style="display:flex;flex-direction:column;gap:12px;">
+<div style="display:flex;flex-direction:column;gap:16px;">
   {% for sev in ['high', 'medium', 'low'] %}
   {% set sev_issues = issues | selectattr('severity', 'equalto', sev) | list %}
   {% if sev_issues %}
-  <div class="fade-up">
-    <h3 style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;
-      {%- if sev == 'high' %} color:#f87171;
-      {%- elif sev == 'medium' %} color:#fbbf24;
-      {%- else %} color:#94a3b8;{%- endif %}">
+  <div class="issue-group fade-up">
+    <h3 class="issue-group-label
+      {%- if sev == 'high' %} sev-high
+      {%- elif sev == 'medium' %} sev-med
+      {%- else %} text-muted{%- endif %}">
       {{ sev }} severity
     </h3>
-    <div style="display:flex;flex-direction:column;gap:8px;">
+    <div class="issue-group-list">
       {% for issue in sev_issues %}
-      <div class="card" style="padding:14px 16px;
-        {%- if sev == 'high' %} border-color:rgba(239,68,68,0.2);
-        {%- elif sev == 'medium' %} border-color:rgba(234,179,8,0.15);{%- endif %}">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+      <div class="card issue-card"
+        style="{% if sev == 'high' %}border-color:rgba(239,68,68,0.2);{% elif sev == 'medium' %}border-color:rgba(234,179,8,0.15);{% endif %}">
+        <div class="issue-card-meta">
           {% if issue.file %}
           <code>{{ issue.file }}</code>
           {% endif %}
@@ -119,7 +118,7 @@
           <span class="text-muted" style="font-size:11px;">line {{ issue.line }}</span>
           {% endif %}
         </div>
-        <p style="font-size:13px;margin:0;line-height:1.55;">{{ issue.message }}</p>
+        <p class="issue-card-msg">{{ issue.message }}</p>
       </div>
       {% endfor %}
     </div>
@@ -136,7 +135,7 @@
 {% endif %}
 
 {% if job.review.posted_comment_id and job.pr_url %}
-<div class="fade-up" style="margin-top:16px;text-align:center;">
+<div class="fade-up" style="margin-top:20px;text-align:center;">
   <a href="{{ job.pr_url }}" target="_blank" rel="noopener noreferrer" class="link-blue" style="font-size:13px;">
     View review comment on {{ job.repository.git_host }} →
   </a>
@@ -144,11 +143,11 @@
 {% endif %}
 
 {% elif job.status in ('pending', 'processing') %}
-<div class="card fade-up" style="padding:40px 24px;text-align:center;"
+<div class="card fade-up" style="padding:48px 24px;text-align:center;"
   hx-get="/reviews/job/{{ job.id }}/status"
   hx-trigger="every 5s"
   hx-swap="none">
-  <div style="width:20px;height:20px;border-radius:50%;border:2px solid rgba(96,165,250,0.3);border-top-color:#60a5fa;animation:spin 0.8s linear infinite;margin:0 auto 14px;"></div>
+  <div style="width:22px;height:22px;border-radius:50%;border:2px solid rgba(96,165,250,0.3);border-top-color:#60a5fa;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
   <p class="text-muted" style="font-size:13px;margin:0;">Review in progress…</p>
 </div>
 {% endif %}
