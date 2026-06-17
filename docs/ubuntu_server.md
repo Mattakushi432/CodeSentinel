@@ -152,7 +152,7 @@ docker compose down -v
 ### Шаг 1 — Клонировать и создать виртуальное окружение
 
 ```bash
-git clone https://github.com/zakrevskyimaksym/CodeSentinel.git
+git clone https://github.com/Mattakushi432/CodeSentinel.git
 cd CodeSentinel
 
 python -m venv .venv
