@@ -25,10 +25,11 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --cov=app --cov-report=term-missing --cov-fail-under=85
         env:
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: test-secret-key-for-ci-that-is-long-enough
           DATABASE_URL: sqlite:///./test.db
           LLM_PROVIDER: ollama
           OLLAMA_BASE_URL: http://localhost:11434
+          DEV_MODE: "true"
 
   docker-build:
     runs-on: ubuntu-latest
@@ -41,11 +42,16 @@ jobs:
       - name: Smoke test container
         run: |
           docker run -d --name cs_test \
-            -e SECRET_KEY=ci-test-key \
+            -e SECRET_KEY=ci-test-key-long-enough-for-32-chars-x \
             -e DATABASE_URL=sqlite:///./data/test.db \
             -e DEV_MODE=true \
             -p 8000:8000 \
             codesentinel:test
-          sleep 5
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:8000/health && break
+            echo "Waiting for app... ($i/15)"
+            sleep 2
+          done
+          docker logs cs_test
           curl -f http://localhost:8000/health
           docker stop cs_test
