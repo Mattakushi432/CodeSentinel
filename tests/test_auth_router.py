@@ -149,19 +149,19 @@ def test_login_invalid_email_format_shows_error(client: TestClient):
 
 
 # ---------------------------------------------------------------------------
-# GET /auth/logout
+# POST /auth/logout
 # ---------------------------------------------------------------------------
 
 def test_logout_clears_session_and_redirects(client: TestClient, db: Session):
     _create_user_and_login(client, db)
 
-    resp = client.get("/auth/logout", follow_redirects=False)
+    resp = client.post("/auth/logout", follow_redirects=False)
     assert resp.status_code in (302, 303)
     assert "/auth/login" in resp.headers["location"]
 
 
 def test_logout_without_login_redirects_to_login(client: TestClient):
-    resp = client.get("/auth/logout", follow_redirects=False)
+    resp = client.post("/auth/logout", follow_redirects=False)
     assert resp.status_code in (302, 303)
     assert "/auth/login" in resp.headers["location"]
 

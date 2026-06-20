@@ -47,10 +47,9 @@ def _login_user_no_org(client: TestClient, db: Session) -> User:
 # GET / — unauthenticated
 # ---------------------------------------------------------------------------
 
-def test_dashboard_unauthenticated_redirects_to_login(client: TestClient):
+def test_dashboard_unauthenticated_shows_landing(client: TestClient):
     resp = client.get("/", follow_redirects=False)
-    assert resp.status_code in (302, 303)
-    assert "/auth/login" in resp.headers["location"]
+    assert resp.status_code == 200
 
 
 # ---------------------------------------------------------------------------
