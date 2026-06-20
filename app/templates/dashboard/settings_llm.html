@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}AI Provider — CodeSentinel{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up">
+  <div>
+    <h1 class="page-title">AI Provider</h1>
+    <p class="page-subtitle">Choose which AI model reviews your pull requests</p>
+  </div>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="banner-success fade-up" style="margin-bottom:16px;" role="alert">Settings saved.</div>
+{% endif %}
+
+{% if error %}
+<div class="banner-error fade-up" style="margin-bottom:16px;" role="alert">{{ error }}</div>
+{% endif %}
+
+<!-- Current provider status -->
+<div class="card fade-up anim-d1" style="margin-bottom:16px;">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:600;color:var(--color-text);margin-bottom:2px;">Active provider</div>
+      {% if current_provider %}
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="badge badge-done">{{ providers[current_provider].label if current_provider in providers else current_provider }}</span>
+        {% if current_model %}
+        <span class="badge badge-processing">{{ current_model }}</span>
+        {% else %}
+        <span class="badge badge-skipped">default model</span>
+        {% endif %}
+        {% if has_key %}
+        <span class="badge badge-skipped">API key set</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <span class="badge badge-skipped">server default</span>
+      {% endif %}
+    </div>
+    {% if current_provider %}
+    <form method="post" action="/settings/llm/clear" style="margin:0;">
+      <button type="submit" class="btn btn-ghost" style="font-size:12px;">Reset to server default</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Configure form -->
+<div class="card fade-up anim-d2">
+  <form method="post" action="/settings/llm" autocomplete="off">
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Provider select -->
+      <div>
+        <label for="provider-select" style="font-size:12px;font-weight:600;color:var(--color-text-muted);display:block;margin-bottom:6px;">
+          PROVIDER
+        </label>
+        <select id="provider-select" name="provider" class="input" style="width:100%;" onchange="onProviderChange(this)">
+          <option value="" {% if not current_provider %}selected{% endif %}>— use server default —</option>
+          {% for id, info in providers.items() %}
+          <option value="{{ id }}" {% if current_provider == id %}selected{% endif %} data-model="{{ info.default_model }}">
+            {{ info.label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Model field -->
+      <div>
+        <label for="model-input" style="font-size:12px;font-weight:600;color:var(--color-text-muted);display:block;margin-bottom:6px;">
+          MODEL <span style="font-weight:400;opacity:0.6;">(leave blank to use the provider default)</span>
+        </label>
+        <input
+          id="model-input"
+          type="text"
+          name="model"
+          class="input"
+          style="width:100%;font-family:monospace;"
+          value="{{ current_model }}"
+          placeholder="auto"
+          maxlength="100"
+          autocomplete="off"
+        />
+        <div id="model-hint" style="font-size:11px;color:var(--color-text-muted);margin-top:4px;"></div>
+      </div>
+
+      <!-- API key field -->
+      <div>
+        <label for="api-key-input" style="font-size:12px;font-weight:600;color:var(--color-text-muted);display:block;margin-bottom:6px;">
+          API KEY
+          {% if has_key %}<span style="font-weight:400;opacity:0.6;">(already stored — enter a new value to replace it)</span>{% endif %}
+        </label>
+        <input
+          id="api-key-input"
+          type="password"
+          name="api_key"
+          class="input"
+          style="width:100%;font-family:monospace;"
+          placeholder="{% if has_key %}••••••••••••••••{% else %}sk-…{% endif %}"
+          maxlength="500"
+          autocomplete="new-password"
+        />
+        <div style="font-size:11px;color:var(--color-text-muted);margin-top:4px;">
+          Stored encrypted with Fernet (same method as repository tokens). Never logged or displayed again.
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary">Save settings</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Provider reference table -->
+<div class="card fade-up anim-d3" style="margin-top:24px;">
+  <div style="font-size:13px;font-weight:600;color:var(--color-text);margin-bottom:12px;">Provider reference</div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--color-border);color:var(--color-text-muted);">Provider</th>
+          <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--color-border);color:var(--color-text-muted);">Default model</th>
+          <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--color-border);color:var(--color-text-muted);">Requires API key</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for id, info in providers.items() %}
+        <tr style="{% if id == current_provider %}background:var(--color-surface-2,rgba(59,130,246,0.04));{% endif %}">
+          <td style="padding:6px 10px;border-bottom:1px solid var(--color-border);font-weight:{% if id == current_provider %}600{% else %}400{% endif %};">
+            {{ info.label }}
+            {% if id == current_provider %}<span class="badge badge-done" style="margin-left:6px;font-size:10px;">active</span>{% endif %}
+          </td>
+          <td style="padding:6px 10px;border-bottom:1px solid var(--color-border);font-family:monospace;color:var(--color-text-muted);">{{ info.default_model }}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid var(--color-border);">
+            {% if id == 'ollama' %}
+            <span style="color:var(--color-text-muted);">No (self-hosted)</span>
+            {% else %}
+            <span style="color:var(--color-text-muted);">Yes</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script nonce="{{ request.state.csp_nonce }}">
+const modelInput = document.getElementById('model-input');
+const modelHint  = document.getElementById('model-hint');
+const select     = document.getElementById('provider-select');
+
+function onProviderChange(el) {
+  const opt = el.options[el.selectedIndex];
+  const def = opt.dataset.model || '';
+  modelHint.textContent = def ? `Default for this provider: ${def}` : '';
+}
+
+onProviderChange(select);
+</script>
+{% endblock %}

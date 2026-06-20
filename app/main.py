@@ -18,7 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.limiter import limiter
-from app.routers import auth, dashboard, repositories, reviews, rules, webhooks
+from app.routers import auth, dashboard, repositories, reviews, rules, settings, webhooks
 from app.worker.tasks import review_worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -157,6 +157,7 @@ def create_app() -> FastAPI:
     app.include_router(repositories.router)
     app.include_router(reviews.router)
     app.include_router(rules.router)
+    app.include_router(settings.router)
     app.include_router(webhooks.router)
 
     @app.get("/health", response_model=HealthResponse)

@@ -131,7 +131,7 @@ async def run_review(job_id: int, db: Session) -> None:
         repo: Repository = job.repository
         org = repo.organization
         git_client = get_git_host_client(repo.git_host, repo.base_url, repo.get_access_token())
-        llm_client = get_llm_client()
+        llm_client = get_llm_client(org)
 
         pr_info = await git_client.get_pr_info(repo.repo_full_name, job.pr_number)
         diff = await git_client.get_pr_diff(repo.repo_full_name, job.pr_number)

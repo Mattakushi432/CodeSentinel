@@ -22,9 +22,26 @@ class Organization(Base):
     reviews_month_key: Mapped[str | None] = mapped_column(String(7))  # "YYYY-MM"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
+    llm_provider_override: Mapped[str | None] = mapped_column(String(50))
+    llm_model_override: Mapped[str | None] = mapped_column(String(100))
+    llm_api_key_enc: Mapped[str | None] = mapped_column(String(1000))
+
     owner: Mapped[User] = relationship(back_populates="organizations")
     repositories: Mapped[list[Repository]] = relationship(back_populates="organization", lazy="select")
     rules: Mapped[list[Rule]] = relationship(back_populates="organization", lazy="select")
+
+    def get_llm_api_key(self) -> str | None:
+        if not self.llm_api_key_enc:
+            return None
+        from app.services.crypto import decrypt_token
+        return decrypt_token(self.llm_api_key_enc) or None
+
+    def set_llm_api_key(self, plaintext: str | None) -> None:
+        if not plaintext:
+            self.llm_api_key_enc = None
+            return
+        from app.services.crypto import encrypt_token
+        self.llm_api_key_enc = encrypt_token(plaintext)
 
     def increment_monthly_reviews(self, db) -> None:
         month_key = datetime.now(timezone.utc).strftime("%Y-%m")

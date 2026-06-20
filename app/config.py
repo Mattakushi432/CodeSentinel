@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5-coder:7b-instruct"
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
 
     max_diff_lines: int = 500
     worker_poll_interval: int = 10
