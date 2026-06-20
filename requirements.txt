@@ -11,3 +11,4 @@ prometheus-client==0.21.0
 python-dateutil==2.9.0
 cryptography==46.0.6
 slowapi==0.1.9
+itsdangerous==2.2.0
