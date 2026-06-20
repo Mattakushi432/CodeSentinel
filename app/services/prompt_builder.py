@@ -91,6 +91,11 @@ def build_system_prompt(rules: list[Rule], diff: DiffResult | None = None) -> st
     return _SYSTEM_PROMPT_TEMPLATE.format(custom_rules=custom, language_context=language_context)
 
 
+def _sanitize_prompt_text(text: str) -> str:
+    """Escape tag-like characters to prevent prompt injection via XML boundary breaking."""
+    return text.replace("<", "[").replace(">", "]")
+
+
 def build_user_prompt(diff: DiffResult, pr_title: str = "", pr_body: str = "") -> str:
     raw = diff.raw_diff
     if len(raw) > _MAX_DIFF_CHARS:
@@ -98,9 +103,9 @@ def build_user_prompt(diff: DiffResult, pr_title: str = "", pr_body: str = "") -
 
     parts: list[str] = []
     if pr_title:
-        parts.append(f"<pr_title>{pr_title[:200]}</pr_title>")
+        parts.append(f"<pr_title>{_sanitize_prompt_text(pr_title[:200])}</pr_title>")
     if pr_body:
-        parts.append(f"<pr_body>{pr_body[:500]}</pr_body>")
+        parts.append(f"<pr_body>{_sanitize_prompt_text(pr_body[:500])}</pr_body>")
     parts.append(f"\nDiff:\n```diff\n{raw}\n```")
     return "\n".join(parts)
 

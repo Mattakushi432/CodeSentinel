@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import logging
 import secrets
 from contextlib import asynccontextmanager
@@ -49,7 +50,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 _STATIC_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
@@ -93,7 +93,7 @@ queue_depth = Gauge("codesentinel_queue_depth", "Pending review jobs in queue")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    logger.info("Database initialized")
+    logger.info("Database connection ready")
 
     worker_task = asyncio.create_task(review_worker())
     logger.info("Background review worker started")
@@ -132,7 +132,7 @@ def create_app() -> FastAPI:
     app.add_middleware(CSRFMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     _https = settings.base_url.startswith("https://")
-    app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=86400 * 30, same_site="lax", https_only=_https)
+    app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=86400 * 7, same_site="lax", https_only=_https)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -144,7 +144,7 @@ def create_app() -> FastAPI:
                 headers = dict(scope.get("headers", []))
                 auth_header = headers.get(b"authorization", b"").decode()
                 expected = f"Bearer {settings.metrics_token}"
-                if auth_header != expected:
+                if not hmac.compare_digest(auth_header, expected):
                     await send({"type": "http.response.start", "status": 401, "headers": [[b"content-length", b"0"]]})
                     await send({"type": "http.response.body", "body": b""})
                     return

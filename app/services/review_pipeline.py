@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import re
@@ -41,12 +42,12 @@ def _parse_issues(raw_text: str) -> list[dict]:
         for issue in issues:
             if isinstance(issue, dict) and "severity" in issue and "message" in issue:
                 valid.append({
-                    "file": issue.get("file", ""),
+                    "file": html.escape(str(issue.get("file", ""))[:500]),
                     "line": issue.get("line"),
                     "severity": issue.get("severity", "low"),
-                    "message": str(issue.get("message", "")),
+                    "message": html.escape(str(issue.get("message", ""))[:500]),
                 })
-        return valid
+        return valid[:100]
     except (json.JSONDecodeError, ValueError):
         logger.warning("Failed to parse LLM JSON output: %s", raw_text[:200])
         return []
@@ -136,7 +137,8 @@ async def run_review(job_id: int, db: Session) -> None:
 
         job.diff_lines = diff.total_lines
         job.pr_title = (pr_info.title or "")[:500]
-        job.pr_url = (pr_info.url or "")[:500]
+        raw_url = pr_info.url or ""
+        job.pr_url = raw_url[:500] if raw_url.startswith(("https://", "http://")) else ""
         job.pr_author = (pr_info.author or "")[:255]
 
         if diff.total_lines == 0:

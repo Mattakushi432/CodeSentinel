@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     # Set to true only in local development — enables /api/docs
     dev_mode: bool = False
 
+    @model_validator(mode="after")
+    def _ensure_encryption_key(self) -> "Settings":
+        if not self.dev_mode and not self.encryption_key:
+            raise ValueError(
+                "ENCRYPTION_KEY must be set in production. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+        return self
+
     # Bearer token required to scrape /metrics. Leave empty to disable the endpoint.
     metrics_token: str = ""
 

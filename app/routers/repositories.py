@@ -1,6 +1,4 @@
-import ipaddress
 import re
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -8,40 +6,18 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database import get_db
+from app.limiter import limiter
 from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.user import User
 from app.routers.auth import require_org, require_user
 from app.templates_config import templates
+from app.utils.ssrf import is_ssrf_url
 
 router = APIRouter(prefix="/repos", tags=["repos"])
 
 _REPO_NAME_RE = re.compile(r"^[\w.\-]+/[\w.\-]+$")
 _URL_RE = re.compile(r"^https?://")
-
-_BLOCKED_HOSTNAMES = frozenset({
-    "localhost",
-    "metadata.google.internal",
-})
-
-
-def _is_ssrf_url(url: str) -> bool:
-    """Returns True if the URL targets a private/loopback/link-local address."""
-    try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-        if not hostname:
-            return True
-        if hostname.lower() in _BLOCKED_HOSTNAMES:
-            return True
-        try:
-            ip = ipaddress.ip_address(hostname)
-            return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast
-        except ValueError:
-            pass
-        return False
-    except Exception:
-        return True
 
 
 def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, access_token: str) -> str | None:
@@ -55,7 +31,7 @@ def _validate_repo_input(git_host: str, repo_full_name: str, base_url: str, acce
     if base_url:
         if len(base_url) > 500 or not _URL_RE.match(base_url):
             return "Base URL must start with http:// or https:// and be under 500 chars"
-        if _is_ssrf_url(base_url):
+        if is_ssrf_url(base_url):
             return "Base URL must not point to a private or internal network address"
     if access_token and len(access_token) > 500:
         return "Access token too long (max 500 chars)"
@@ -79,6 +55,7 @@ def list_repos(
 
 
 @router.post("")
+@limiter.limit("20/minute")
 def add_repo(
     request: Request,
     user: User = Depends(require_user),
@@ -117,7 +94,9 @@ def add_repo(
 
 
 @router.post("/{repo_id}/delete")
+@limiter.limit("30/minute")
 def delete_repo(
+    request: Request,
     repo_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
