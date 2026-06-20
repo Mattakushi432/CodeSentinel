@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-from app.models.api_key import ApiKey
 from app.models.organization import Organization
 from app.models.repository import Repository
 from app.models.review import Review
@@ -21,6 +20,5 @@ __all__ = [
     "JobStatus",
     "Review",
     "Rule",
-    "ApiKey",
     "utcnow",
 ]

@@ -34,12 +34,9 @@ async def review_worker() -> None:
                 if job:
                     job_id = job.id
                     logger.info("Picked up job %d (PR #%d)", job_id, job.pr_number)
-
-            if job_id is not None:
-                with SessionLocal() as db:
                     await run_review(job_id, db)
-            else:
-                await asyncio.sleep(settings.worker_poll_interval)
+                else:
+                    await asyncio.sleep(settings.worker_poll_interval)
 
         except asyncio.CancelledError:
             logger.info("Review worker shutting down")

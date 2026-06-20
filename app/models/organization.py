@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, update
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -25,27 +25,24 @@ class Organization(Base):
     owner: Mapped[User] = relationship(back_populates="organizations")
     repositories: Mapped[list[Repository]] = relationship(back_populates="organization", lazy="select")
     rules: Mapped[list[Rule]] = relationship(back_populates="organization", lazy="select")
-    api_keys: Mapped[list[ApiKey]] = relationship(back_populates="organization", lazy="select")
 
     def increment_monthly_reviews(self, db) -> None:
-        from sqlalchemy import text
         month_key = datetime.now(timezone.utc).strftime("%Y-%m")
         if self.reviews_month_key != month_key:
             db.execute(
-                text("UPDATE organizations SET reviews_this_month = 1, reviews_month_key = :mk WHERE id = :id"),
-                {"mk": month_key, "id": self.id},
+                update(Organization)
+                .where(Organization.id == self.id)
+                .values(reviews_this_month=1, reviews_month_key=month_key)
             )
-            self.reviews_this_month = 1
-            self.reviews_month_key = month_key
         else:
             db.execute(
-                text("UPDATE organizations SET reviews_this_month = reviews_this_month + 1 WHERE id = :id"),
-                {"id": self.id},
+                update(Organization)
+                .where(Organization.id == self.id)
+                .values(reviews_this_month=Organization.reviews_this_month + 1)
             )
-            self.reviews_this_month += 1
+        db.expire(self)
 
 
-from app.models.api_key import ApiKey  # noqa: E402, F401
 from app.models.repository import Repository  # noqa: E402, F401
 from app.models.rule import Rule  # noqa: E402, F401
 from app.models.user import User  # noqa: E402, F401

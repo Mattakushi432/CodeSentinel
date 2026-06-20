@@ -11,7 +11,7 @@ class GroqProvider(LLMClient):
         settings = get_settings()
         self._api_key = settings.groq_api_key
         self._model = settings.groq_model
-        self._timeout = 60  # Groq is fast; hard cap at 60s
+        self._timeout = settings.llm_timeout
 
     async def generate(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         payload = {

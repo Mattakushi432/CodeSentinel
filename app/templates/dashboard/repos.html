@@ -9,7 +9,7 @@
       {{ repos | length }} {{ "repository" if repos | length == 1 else "repositories" }}
     </p>
   </div>
-  <button onclick="openModal()" class="btn btn-primary">
+  <button id="open-modal-btn" class="btn btn-primary">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -43,17 +43,14 @@
         <span class="text-muted" style="font-size:11px;">Webhook:</span>
         <code id="wh-{{ repo.id }}" style="font-size:10px;user-select:all;">{{ base_url }}/webhooks/{{ repo.id }}</code>
         <button
-          onclick="copyToClipboard(this, '{{ base_url }}/webhooks/{{ repo.id }}')"
-          class="btn btn-ghost" style="padding:3px 8px;font-size:11px;">
+          data-copy="{{ base_url }}/webhooks/{{ repo.id }}"
+          class="btn btn-ghost copy-btn" style="padding:3px 8px;font-size:11px;">
           Copy
         </button>
       </div>
 
-      <form method="post" action="/repos/{{ repo.id }}/delete">
-        <button type="submit" class="btn btn-danger"
-          onclick="return confirm('Remove this repository?')">
-          Remove
-        </button>
+      <form method="post" action="/repos/{{ repo.id }}/delete" class="delete-form">
+        <button type="submit" class="btn btn-danger">Remove</button>
       </form>
     </div>
   </div>
@@ -96,7 +93,7 @@
   <div class="card modal-box" style="padding:24px;">
     <div class="modal-header">
       <h2 id="add-repo-title" class="modal-title">Add repository</h2>
-      <button onclick="closeModal()" class="modal-close" aria-label="Close">✕</button>
+      <button id="close-modal-btn" class="modal-close" aria-label="Close">✕</button>
     </div>
 
     <form method="post" action="/repos" class="form-stack">
@@ -134,7 +131,7 @@
 
       <div class="form-actions">
         <button type="submit" class="btn btn-primary" style="flex:1;">Add repository</button>
-        <button type="button" onclick="closeModal()" class="btn btn-ghost">Cancel</button>
+        <button type="button" id="cancel-modal-btn" class="btn btn-ghost">Cancel</button>
       </div>
     </form>
   </div>
@@ -146,8 +143,22 @@
 var _modal = document.getElementById('add-repo-modal');
 function openModal()  { _modal.classList.remove('hidden'); }
 function closeModal() { _modal.classList.add('hidden'); }
+
+document.getElementById('open-modal-btn').addEventListener('click', openModal);
+document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
 _modal.addEventListener('click', function (e) { if (e.target === _modal) closeModal(); });
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() { copyToClipboard(this, this.dataset.copy); });
+});
+
+document.querySelectorAll('.delete-form').forEach(function(form) {
+  form.addEventListener('submit', function(e) {
+    if (!confirm('Remove this repository?')) { e.preventDefault(); }
+  });
+});
 
 function copyToClipboard(btn, text) {
   function markCopied() {
