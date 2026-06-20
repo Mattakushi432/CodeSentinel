@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 
@@ -12,6 +13,8 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.services.auth_service import hash_password, verify_password
 from app.templates_config import templates
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -125,7 +128,7 @@ async def register_submit(
 @router.post("/logout")
 def logout(request: Request):
     request.session.clear()
-    return RedirectResponse(url="/auth/login", status_code=302)
+    return RedirectResponse(url="/auth/login", status_code=303)
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
@@ -143,8 +146,10 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if not user:
         raise _LoginRequired()
-    created = request.session.get("created_at", 0)
-    if time.time() - created > _SESSION_MAX_AGE:
+    created = request.session.get("created_at")
+    if created is None or time.time() - created > _SESSION_MAX_AGE:
+        if created is None:
+            logger.info("Expiring legacy session for user %s (no created_at — expected on first deploy after upgrade)", user.id)
         request.session.clear()
         raise _LoginRequired()
     return user

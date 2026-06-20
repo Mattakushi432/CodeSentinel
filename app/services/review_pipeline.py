@@ -1,4 +1,3 @@
-import html
 import json
 import logging
 import re
@@ -42,10 +41,10 @@ def _parse_issues(raw_text: str) -> list[dict]:
         for issue in issues:
             if isinstance(issue, dict) and "severity" in issue and "message" in issue:
                 valid.append({
-                    "file": html.escape(str(issue.get("file", ""))[:500]),
+                    "file": str(issue.get("file", ""))[:500],
                     "line": issue.get("line"),
                     "severity": issue.get("severity", "low"),
-                    "message": html.escape(str(issue.get("message", ""))[:500]),
+                    "message": str(issue.get("message", ""))[:500],
                 })
         return valid[:100]
     except (json.JSONDecodeError, ValueError):
@@ -112,6 +111,8 @@ def _categorize_error(exc: Exception) -> str:
         return "Git host rate limit exceeded — retry later"
     if "JSONDecodeError" in name or "json" in msg.lower():
         return "LLM returned invalid JSON — review prompt or model"
+    if isinstance(exc, ValueError) and "forbidden internal address" in msg:
+        return "Repository base_url targets a blocked internal address — remove or fix it in repo settings"
     return "Internal error — check server logs for details"
 
 
