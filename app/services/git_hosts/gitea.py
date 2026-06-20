@@ -1,5 +1,6 @@
-import httpx
 from urllib.parse import quote
+
+import httpx
 
 from app.services.git_hosts.base import DiffResult, GitHostClient, PRInfo
 

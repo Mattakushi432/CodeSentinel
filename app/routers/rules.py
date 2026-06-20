@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import limiter
 from app.models.organization import Organization
 from app.models.rule import Rule
 from app.models.user import User
@@ -26,6 +27,7 @@ def list_rules(
 
 
 @router.post("")
+@limiter.limit("20/minute")
 def add_rule(
     request: Request,
     user: User = Depends(require_user),
@@ -56,7 +58,9 @@ def add_rule(
 
 
 @router.post("/{rule_id}/toggle")
+@limiter.limit("30/minute")
 def toggle_rule(
+    request: Request,
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),
@@ -69,7 +73,9 @@ def toggle_rule(
 
 
 @router.post("/{rule_id}/delete")
+@limiter.limit("30/minute")
 def delete_rule(
+    request: Request,
     rule_id: int,
     org: Organization = Depends(require_org),
     db: Session = Depends(get_db),

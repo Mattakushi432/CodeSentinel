@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 class OllamaProvider(LLMClient):
     def __init__(self):
         settings = get_settings()
-        self._base_url = settings.ollama_base_url
+        base = settings.ollama_base_url
+        if not base.startswith(("http://", "https://")):
+            raise ValueError(f"OLLAMA_BASE_URL must start with http:// or https://, got: {base!r}")
+        self._base_url = base
         self._model = settings.ollama_model
         self._timeout = settings.llm_timeout
         self._retry_attempts = settings.llm_retry_attempts
@@ -55,11 +58,3 @@ class OllamaProvider(LLMClient):
                 else:
                     raise
         raise RuntimeError(f"Ollama failed after {self._retry_attempts} attempts") from last_exc
-
-    async def is_healthy(self) -> bool:
-        try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(f"{self._base_url}/api/tags")
-                return resp.status_code == 200
-        except Exception:
-            return False

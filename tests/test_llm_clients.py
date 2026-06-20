@@ -100,51 +100,6 @@ async def test_ollama_generate_missing_counts_default_to_zero():
 
 
 # ---------------------------------------------------------------------------
-# OllamaProvider.is_healthy
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_ollama_is_healthy_returns_true_on_200():
-    resp = MagicMock(spec=httpx.Response)
-    resp.status_code = 200
-    ctx, _ = _async_client_ctx(resp)
-
-    with patch("httpx.AsyncClient", return_value=ctx):
-        provider = OllamaProvider()
-        healthy = await provider.is_healthy()
-
-    assert healthy is True
-
-
-@pytest.mark.asyncio
-async def test_ollama_is_healthy_returns_false_on_connection_error():
-    ctx = MagicMock()
-    mock_client = AsyncMock()
-    mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
-    ctx.__aenter__ = AsyncMock(return_value=mock_client)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-
-    with patch("httpx.AsyncClient", return_value=ctx):
-        provider = OllamaProvider()
-        healthy = await provider.is_healthy()
-
-    assert healthy is False
-
-
-@pytest.mark.asyncio
-async def test_ollama_is_healthy_returns_false_on_non_200():
-    resp = MagicMock(spec=httpx.Response)
-    resp.status_code = 503
-    ctx, _ = _async_client_ctx(resp)
-
-    with patch("httpx.AsyncClient", return_value=ctx):
-        provider = OllamaProvider()
-        healthy = await provider.is_healthy()
-
-    assert healthy is False
-
-
-# ---------------------------------------------------------------------------
 # GroqProvider.generate
 # ---------------------------------------------------------------------------
 

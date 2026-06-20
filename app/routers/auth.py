@@ -1,4 +1,6 @@
+import logging
 import re
+import time
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,12 +14,15 @@ from app.models.user import User
 from app.services.auth_service import hash_password, verify_password
 from app.templates_config import templates
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
 _ORG_NAME_CLEAN = re.compile(r"[^\w\-]")
 _MIN_PASSWORD_LEN = 8
 _MAX_PASSWORD_BYTES = 72
+_SESSION_MAX_AGE = 86400 * 7  # 7 days server-side enforcement
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -49,7 +54,9 @@ async def login_submit(
             {"error": "Invalid email or password."},
         )
 
+    request.session.clear()
     request.session["user_id"] = user.id
+    request.session["created_at"] = int(time.time())
     return RedirectResponse(url="/", status_code=302)
 
 
@@ -112,14 +119,16 @@ async def register_submit(
     db.commit()
     db.refresh(user)
 
+    request.session.clear()
     request.session["user_id"] = user.id
+    request.session["created_at"] = int(time.time())
     return RedirectResponse(url="/", status_code=302)
 
 
-@router.get("/logout")
+@router.post("/logout")
 def logout(request: Request):
     request.session.clear()
-    return RedirectResponse(url="/auth/login", status_code=302)
+    return RedirectResponse(url="/auth/login", status_code=303)
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
@@ -136,6 +145,12 @@ class _LoginRequired(Exception):
 def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if not user:
+        raise _LoginRequired()
+    created = request.session.get("created_at")
+    if created is None or time.time() - created > _SESSION_MAX_AGE:
+        if created is None:
+            logger.info("Expiring legacy session for user %s (no created_at — expected on first deploy after upgrade)", user.id)
+        request.session.clear()
         raise _LoginRequired()
     return user
 
