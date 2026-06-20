@@ -43,6 +43,7 @@ jobs:
           docker run -d --name cs_test \
             -e SECRET_KEY=ci-test-key \
             -e DATABASE_URL=sqlite:///./data/test.db \
+            -e DEV_MODE=true \
             -p 8000:8000 \
             codesentinel:test
           sleep 5
